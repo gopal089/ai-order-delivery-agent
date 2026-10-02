@@ -55,7 +55,7 @@ Core product requirements:
 - Bean Validation.
 - Spring Data JPA and Hibernate.
 - HikariCP.
-- Spring Security Crypto only; no Spring Security web/authentication filter chain yet.
+- Spring Security 7.1.1 authentication/filter-chain support and JOSE JWT signing.
 - Argon2id password hashing through `Argon2PasswordEncoder.defaultsForSpringSecurity_v5_8()`.
 - BouncyCastle `bcprov-jdk18on` 1.84.
 - PostgreSQL JDBC driver 42.7.13 (resolved by Spring Boot dependency management).
@@ -74,7 +74,7 @@ The host JVM observed during diagnostics is Java 25.0.1, while the backend build
 
 ### Planned but not implemented
 
-- Full Spring Security authentication/authorization.
+- Bearer-token request authentication and application authorization.
 - LangChain4j.
 - Amazon Bedrock and a provider abstraction.
 - Amazon API Gateway.
@@ -91,10 +91,12 @@ Current implemented path:
 
 ```text
 HTTP client
-  -> Spring MVC registration controller
+  -> Spring MVC registration/login/refresh/logout controllers
   -> Bean Validation
-  -> registration service
-  -> Argon2id password encoder
+  -> registration/authentication services
+  -> Spring Security DaoAuthenticationProvider / Argon2id password encoder
+  -> signed short-lived JWT access tokens
+  -> rotating opaque refresh tokens stored only as SHA-256 hashes
   -> Spring Data JPA repository
   -> HikariCP / PostgreSQL JDBC
   -> local PostgreSQL
@@ -274,7 +276,8 @@ ai-order-delivery-agent/
 | Configure PostgreSQL/JPA | Complete | DataSource, JPA/Hibernate, PostgreSQL driver, connection test. |
 | Add Flyway | Complete | Boot Flyway starter and PostgreSQL module; migrations execute and validate. |
 | Create initial database schema | Complete | Ten requested tables, composite ownership constraints, indexes, cache metadata. |
-| Implement user registration only | Complete | Endpoint, validation, Argon2id, duplicate protection, JPA persistence, error handling, tests, docs. |
+| Implement user registration | Complete | Endpoint, validation, Argon2id, duplicate protection, JPA persistence, error handling, tests, docs. |
+| Implement login and session lifecycle | Complete | Login, signed access tokens, hashed rotating refresh tokens, reuse detection, expiration, logout, tests, and documentation. |
 | Verify FSEvents warning | Complete | Non-fatal Gradle/macOS watcher warning; no application/runtime correctness impact. |
 
 ## 7. Database schema
@@ -297,11 +300,11 @@ All requested application tables are in the PostgreSQL `public` schema. Every ta
 
 ### `refresh_tokens`
 
-- `id`, `tenant_id`, `user_id`, `token_hash`, `expires_at`, `revoked_at`, `created_at`.
+- `id`, `tenant_id`, `user_id`, `session_id`, `token_hash`, `expires_at`, `revoked_at`, `created_at`.
 - Composite FK `(tenant_id, user_id)` to `users`.
 - Only token hashes may be stored; plaintext refresh tokens are prohibited.
 - Active-token expiry index and complete ownership index.
-- Table exists, but refresh-token functionality is not implemented.
+- Raw tokens are never stored. `session_id` groups rotations for reuse detection and logout revocation.
 
 ### `integrations`
 
@@ -360,7 +363,7 @@ Database-level RLS is **not** enabled. Current isolation is structural ownership
 
 ## 8. Flyway migrations
 
-Already-applied migrations are immutable. Never edit V1–V4; add V5 or later.
+Already-applied migrations are immutable. Never edit V1–V5; add V6 or later.
 
 | Migration | Purpose | Verified state |
 |---|---|---|
@@ -368,6 +371,7 @@ Already-applied migrations are immutable. Never edit V1–V4; add V5 or later.
 | `V2__initial_database_schema.sql` | Creates users, refresh tokens, integrations, conversations, messages, orders, shipments, tracking events, tool executions, and audit events with ownership constraints and indexes. | Applied successfully. |
 | `V3__index_refresh_token_ownership.sql` | Adds a full `(tenant_id, user_id)` index for refresh-token FK/ownership operations, complementing the active-token partial index. | Applied successfully. |
 | `V4__add_user_registration_credentials.sql` | Adds `users.password_hash`, its Argon2-format check constraint, explanatory comment, and race-safe global normalized-email unique index. | Applied successfully. |
+| `V5__add_refresh_token_sessions.sql` | Adds the non-null refresh-token `session_id` and its tenant/user/session index. | Applied successfully. |
 
 Common Flyway configuration in `application.properties`:
 
@@ -377,7 +381,7 @@ Common Flyway configuration in `application.properties`:
 - Baseline-on-migrate disabled.
 - Flyway `clean` disabled.
 
-Latest verification validated all four migrations and reported the schema up to date.
+Latest verification validated all five migrations and reported the schema up to date.
 
 ## 9. PostgreSQL configuration
 
@@ -496,9 +500,9 @@ Each profile supports:
 
 All profiles use the same JPA safety settings and external database configuration. Environment isolation is represented by profiles only; separate DEV/QA/PROD infrastructure does not exist.
 
-## 13. User registration implementation
+## 13. Registration and authentication implementation
 
-Only registration is implemented. Login, tokens, refresh tokens, logout, OAuth, account recovery, email verification, and rate limiting are not implemented.
+Registration, login, access-token issuance, refresh-token rotation/reuse detection, and logout are implemented. OAuth, account recovery, email verification, rate limiting, and protected-resource authorization are not implemented.
 
 Registration flow:
 
@@ -592,12 +596,28 @@ Duplicate email: `409 Conflict`
 }
 ```
 
-No other application endpoint is implemented.
+### `POST /api/v1/auth/login`
+
+Accepts email/password credentials. Spring Security verifies the normalized email and existing Argon2id hash. Successful authentication returns a 15-minute HS256 JWT access token and a 30-day opaque refresh token. Unknown email, incorrect password, and inactive-user failures all return the same `401 AUTHENTICATION_FAILED` response.
+
+### `POST /api/v1/auth/refresh`
+
+Accepts the current opaque refresh token, revokes it, and returns a new access/refresh pair in the same session family. Unknown, expired, revoked, and reused tokens return the same generic authentication failure. Reuse revokes the full session family.
+
+### `POST /api/v1/auth/logout`
+
+Accepts a refresh token, revokes the full session family, and returns `204 No Content`. Logout is idempotent and does not disclose token state.
+
+No protected business endpoint or bearer-token request authentication is implemented yet. See `docs/AUTHENTICATION.md` for the complete Step 2 design.
 
 ## 15. Security decisions already implemented
 
 - `.env`, `.env.*`, keys, PEM files, PKCS files, and `secrets/` are ignored; `.env.example` is explicitly allowed.
 - Passwords are one-way encoded with Argon2id before persistence.
+- Access tokens are signed with an externally supplied, Base64-encoded HMAC key of at least 256 bits and expire after 15 minutes.
+- Refresh tokens contain 256 random bits, expire after 30 days, rotate on use, and are stored only as SHA-256 hashes.
+- Refresh-token rows are locked during rotation; reuse revokes the complete session family.
+- Logout revokes the complete refresh-token session without disclosing whether the submitted token exists.
 - Plaintext passwords and hashes are absent from API responses.
 - The database rejects non-Argon2 credential strings when a password hash is supplied.
 - Registration duplicates are checked in application code and protected by a database unique index.
@@ -612,7 +632,7 @@ No other application endpoint is implemented.
 - Tool execution and audit metadata are documented as redacted-only.
 - External order/shipment cache columns require explicit expiration metadata.
 
-Not yet implemented: authorization, secure headers, CORS policy, CSRF strategy, rate limiting, brute-force controls, token management, RLS, encrypted integration credentials, audit production, secret scanning CI, dependency/container scanning, TLS termination, and cloud IAM.
+Not yet implemented: bearer-token request authentication, authorization, secure headers, CORS policy, rate limiting, brute-force controls, RLS, encrypted integration credentials, audit production, secret scanning CI, dependency/container scanning, TLS termination, and cloud IAM. CSRF is disabled for the stateless JSON token API because it does not use ambient cookie authentication.
 
 ## 16. Tenant-isolation design
 
@@ -779,15 +799,17 @@ export DATABASE_PASSWORD="$POSTGRES_PASSWORD"
 ./gradlew test --rerun-tasks --console=plain
 ```
 
-Latest verified result on 2026-10-02:
+Latest verified result on 2026-10-02 after Step 2:
 
 - `BackendApplicationTests`: 1 test, 0 failures.
 - `PostgreSqlConnectionTests`: 3 tests, 0 failures.
 - `UserRegistrationIntegrationTests`: 7 tests, 0 failures.
-- Total: 11 tests, 11 passed, 0 failed, 0 skipped.
-- Flyway validated four migrations.
+- `UserAuthenticationIntegrationTests`: 12 tests, 0 failures.
+- Total: 23 tests, 23 passed, 0 failed, 0 skipped.
+- Flyway validated five migrations.
 - PostgreSQL JDBC driver, database connection, and `SELECT 1` were verified.
 - Registration cases verified: success, invalid email, missing email, missing password, weak password, case-insensitive duplicate, and stored Argon2id hash rather than plaintext.
+- Authentication cases verified: login success, unknown email, incorrect password, invalid/missing input, inactive user, access-token issuance, hashed refresh-token issuance, rotation, expiration, revocation, reuse detection, and logout.
 
 No frontend or extension automated tests exist.
 
@@ -817,9 +839,8 @@ Tests may print an OpenJDK warning that class sharing is limited because the boo
 
 ## 24. Known unresolved issues and transient local state
 
-- The Git repository has no commits. `git ls-files` returned zero and all project content is untracked. This is the most important workflow issue before collaborative continuation.
+- The registration baseline is committed and pushed on `main` as `6a0721b`. Step 2 authentication changes are currently uncommitted until the user explicitly requests another checkpoint.
 - No CI, branch protection, or pull-request workflow is configured.
-- The repository-level README still says initialization is in progress and does not reflect all completed backend work.
 - `IMPLEMENTATION_STATUS.md` required by the master specification does not exist.
 - Most planned documentation files do not exist.
 - At handoff capture time, Java processes were listening on ports `8080` and `18080`. Port `8080` was an older verification run; port `18080` was the registration-capable verification run. The execution sandbox could not signal those child Java processes. A new local session should inspect with `lsof -nP -iTCP:8080 -sTCP:LISTEN` and `lsof -nP -iTCP:18080 -sTCP:LISTEN`, then ask the user before terminating processes if intent is unclear.
@@ -851,11 +872,11 @@ No AWS or remote deployed services exist.
 - Remote: `https://github.com/gopal089/ai-order-delivery-agent.git`.
 - Current local branch: `main`.
 - Default intended branch: `main`.
-- Current commit count: zero.
-- Current tracked file count: zero.
-- All project files are currently untracked locally.
+- The registration baseline root commit is `6a0721b5fffa5e030db7f83706e5cc58a327b877`.
+- Local `main` tracks `origin/main`, and the baseline commit was verified on the remote.
+- Step 2 authentication changes are not committed by this implementation task.
 
-Do not claim the code is safely in GitHub until an initial commit and push are explicitly performed and verified. Before committing, review generated files, confirm `.env` is ignored, run a secret scan, and exclude build/cache artifacts. Do not push, create branches, or alter GitHub settings without the user’s instruction.
+Do not claim Step 2 is in GitHub until its changes are explicitly committed and pushed. Before committing, review generated files, confirm `.env` is ignored, run a secret scan, and exclude build/cache artifacts. Do not push, create branches, or alter GitHub settings without the user’s instruction.
 
 Intended future workflow from the specification:
 
@@ -878,13 +899,19 @@ Intended future workflow from the specification:
 | `backend/settings.gradle` | Gradle project name and Foojay toolchain resolver. |
 | `backend/src/main/resources/application.properties` | Common application and Flyway settings. |
 | `backend/src/main/resources/application-*.yml` | Environment-specific external DataSource and runtime settings. |
-| `backend/src/main/resources/db/migration/V1…V4.sql` | Immutable applied schema history. |
+| `backend/src/main/resources/db/migration/V1…V5.sql` | Immutable applied schema history. |
+| `docs/AUTHENTICATION.md` | Step 2 access-token, refresh-token, rotation, reuse, and logout decisions. |
 | `BackendApplication.java` | Spring Boot entry point. |
 | `PasswordConfiguration.java` | Argon2id encoder and UTC clock beans. |
 | `RegisterRequest.java` | Registration request and validation rules. |
 | `RegisterResponse.java` | Safe registration response. |
 | `UserRegistrationController.java` | `POST /api/v1/auth/register`. |
 | `UserRegistrationService.java` | Normalization, duplicate check, hashing, tenant creation, persistence. |
+| `UserAuthenticationController.java` | Login, refresh, and logout HTTP endpoints. |
+| `UserAuthenticationService.java` | Credential authentication and transactional session lifecycle. |
+| `TokenService.java` | JWT issuance plus opaque refresh-token generation and hashing. |
+| `RefreshToken.java` / `RefreshTokenRepository.java` | Refresh-token persistence, row locking, and session revocation. |
+| `SecurityConfiguration.java` | Stateless Spring Security authentication configuration and JWT cryptography beans. |
 | `UserAccount.java` | JPA mapping to the existing `users` table. |
 | `UserAccountRepository.java` | User persistence and case-insensitive email lookup. |
 | `RegistrationExceptionHandler.java` | Safe 400/409 registration error responses. |
@@ -912,13 +939,9 @@ Intended future workflow from the specification:
 
 ## 29. Explicitly not implemented
 
-- Login.
-- Logout.
-- Access tokens or JWTs.
-- Refresh-token issuance, rotation, or revocation behavior.
 - OAuth/social authentication.
 - Email verification, password reset, or account recovery.
-- Spring Security web filter chain and authorization rules.
+- Bearer-token request authentication and application authorization rules.
 - Rate limiting or brute-force protection.
 - PostgreSQL RLS.
 - Tenant membership/invitation/administration.
@@ -1010,7 +1033,7 @@ The actual work has intentionally crossed the original broad phase ordering in s
 
 ## 31. Decisions that must not change without approval
 
-- Do not edit V1–V4 Flyway files.
+- Do not edit V1–V5 Flyway files.
 - Do not create a competing users table.
 - Do not store plaintext passwords, raw refresh tokens, or provider credentials.
 - Keep Argon2id for password encoding unless a security migration is explicitly designed and approved.
@@ -1019,7 +1042,7 @@ The actual work has intentionally crossed the original broad phase ordering in s
 - Keep Hibernate `ddl-auto` set to `none` and Flyway as the sole schema manager.
 - Keep tenant/user composite ownership constraints.
 - Do not enable RLS yet.
-- Do not implement login, tokens, logout, OAuth, rate limiting, AI, integrations, AWS, or API Gateway as a side effect of another task.
+- Do not implement bearer-token authorization, OAuth, rate limiting, AI, integrations, AWS, or API Gateway as a side effect of another task.
 - Do not expose integration credentials to the LLM, browser, extension, logs, or errors.
 - Do not implement external provider endpoints without documentation.
 - Keep external APIs as the source of truth and preserve source timestamps.
@@ -1032,9 +1055,7 @@ The actual work has intentionally crossed the original broad phase ordering in s
 
 ## 32. Exact next implementation step
 
-Feature work should proceed with **login credential verification only**, using the existing `users` table and Argon2id hashes. Before making code changes, the new session should also surface the empty Git history/untracked working tree and ask whether the user wants the current baseline committed and pushed; committing is a workflow action, not part of login implementation unless explicitly authorized.
-
-Login scope must be approved carefully. The previous recommendation was to implement email/password verification without automatically adding access tokens, refresh tokens, logout, OAuth, or unrelated security features.
+Step 2 authentication is complete. The next feature phase is **Step 3 authorization**, but it must not begin without separate user approval. That phase must validate access-token signatures and expiration, establish an authenticated principal from trusted token claims, and enforce user/tenant ownership on protected operations. It must not accept authoritative tenant or user IDs from request input.
 
 ## CURRENT STATE
 
@@ -1046,11 +1067,13 @@ Login scope must be approved carefully. The previous recommendation was to imple
 - Manifest V3 extension scaffold and built output.
 - Docker Compose PostgreSQL and Redis infrastructure.
 - PostgreSQL/JPA connection configuration.
-- Flyway setup and four applied migrations.
+- Flyway setup and five applied migrations.
 - Initial ten-table tenant-aware schema.
 - User registration endpoint with Argon2id hashing and validation.
+- Login, signed access-token issuance, rotating hashed refresh tokens, reuse detection, and logout/session revocation.
 - Local development documentation.
-- Eleven passing backend integration tests.
+- Twenty-three passing backend tests.
+- Registration baseline commit `6a0721b` pushed to `origin/main`.
 - Diagnosis of the harmless Gradle/macOS FSEvents warning.
 
 ### Currently working
@@ -1058,43 +1081,45 @@ Login scope must be approved carefully. The previous recommendation was to imple
 - PostgreSQL connectivity and Flyway validation.
 - JPA/Hibernate startup with schema mutation disabled.
 - `POST /api/v1/auth/register`.
+- `POST /api/v1/auth/login`.
+- `POST /api/v1/auth/refresh`.
+- `POST /api/v1/auth/logout`.
 - Required registration validation and safe 400/409 responses.
 - Case-insensitive duplicate protection.
 - Argon2id persistence without plaintext storage.
+- Fifteen-minute signed access tokens and 30-day rolling refresh-token sessions.
+- Refresh-token rotation, expiration, revocation, and session-wide reuse response.
 - Local Redis/PostgreSQL ports and persistence configuration.
 - Next.js landing page build artifacts.
 - Extension build artifacts and URL settings code.
 
 ### Not implemented
 
-- All authentication beyond registration.
-- Authorization and authenticated tenant context.
+- Bearer-token request authentication, authorization, and authenticated tenant context.
 - Integration credentials/providers.
 - Agent, tools, memory, AI models, and evaluation.
 - Most functional frontend and extension screens.
 - Redis-backed application behavior.
 - AWS, CI/CD, deployment, observability, cost controls, and production security.
-- Git commits/push of the current code.
+- Commit/push of the currently uncommitted Step 2 changes.
 
 ### What should be done next
 
-1. In the new session, inspect Git status and inform the user that the repository has no commits and all files are untracked.
-2. Ask separately whether to create/push an initial baseline commit; do not assume permission.
-3. For feature development, implement login credential verification only, after confirming the precise desired response/session design.
-4. Do not add tokens or refresh-token behavior unless the user explicitly includes them in that task.
+1. Inspect and report the uncommitted Step 2 changes.
+2. Ask separately whether to create and push a Step 2 checkpoint; do not assume permission.
+3. Start Step 3 authorization only after explicit approval and a review of principal/claim/tenant enforcement semantics.
+4. Do not implement OAuth, frontend/extension authentication, RLS, integrations, AI, or infrastructure as part of Step 3.
 
 ### Exact next Codex task/prompt
 
 ```text
-Implement user login credential verification only for the Spring Boot backend.
+Implement Step 3 bearer-token authentication and authorization only after explicit approval.
 
-First inspect docs/PROJECT_HANDOFF.md, the current Git status, the existing registration implementation, users schema, V1–V4 migrations, and all current tests. Do not modify any already-applied migration.
+First inspect docs/PROJECT_HANDOFF.md, docs/AUTHENTICATION.md, the current Git status, V1–V5, the authentication implementation, and all tests. Do not modify any already-applied migration.
 
-Add POST /api/v1/auth/login accepting email and password. Normalize email consistently with registration, retrieve the existing user safely, and verify the stored Argon2id hash using the existing PasswordEncoder. Return one generic authentication failure for both unknown email and incorrect password so account existence is not disclosed. Validate required fields and never log or return passwords or hashes.
+Validate signed access tokens, create a trusted authenticated principal, and design tenant/user ownership checks before adding protected business operations. Never trust client-supplied tenant or user IDs as authority. Preserve the Step 2 token response and generic authentication-failure contracts.
 
-Do not implement access tokens, refresh tokens, logout, OAuth, rate limiting, AWS, API Gateway, AI functionality, external integrations, RLS, frontend changes, or Chrome-extension changes. If a successful-login response cannot be safely defined without choosing a session/token design, stop and ask for approval rather than inventing one.
-
-Add tests for successful credential verification, unknown email, incorrect password, invalid email, missing fields, and inactive user behavior. Run all existing tests against local PostgreSQL and update docs/LOCAL-DEVELOPMENT.md. Stop and report before starting another feature.
+Do not implement OAuth, RLS, frontend or extension changes, integrations, AI, AWS, or unrelated functionality. Stop and report before starting another feature.
 ```
 
 ## CONTINUATION INSTRUCTIONS
@@ -1103,11 +1128,11 @@ For a new ChatGPT/Codex session:
 
 1. Open the repository root and read this entire file before changing anything.
 2. Read any repository-local agent instructions relevant to the files being changed, especially `web/AGENTS.md` for web work.
-3. Run `git status --short`, `git branch --show-current`, `git log --oneline`, and `git remote -v`. Expect no commits and untracked project files until proven otherwise.
+3. Run `git status --short`, `git branch --show-current`, `git log --oneline`, and `git remote -v`. Expect the pushed registration baseline plus uncommitted Step 2 changes until proven otherwise.
 4. Never open, print, summarize, or transmit the ignored `.env`. Use `.env.example` only for variable names and placeholders.
 5. Run `docker compose ps` and verify PostgreSQL/Redis health. Inspect ports 8080 and 18080 before starting another backend because temporary verification processes may remain.
 6. Read the exact source, migration, configuration, and tests related to the requested task. Do not rely only on this summary.
-7. Do not modify V1–V4. Any schema change starts at V5 or later.
+7. Do not modify V1–V5. Any future schema change starts at V6 or later.
 8. Load local environment variables without printing them, then run the full backend test suite before and after backend changes.
 9. Keep the user informed and execute only the single approved implementation task. Stop and report before advancing.
 10. Do not infer permission to commit, push, create a pull request, change GitHub settings, stop unrelated processes, deploy, configure AWS, or modify the extension.

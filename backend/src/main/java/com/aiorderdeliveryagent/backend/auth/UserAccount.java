@@ -56,11 +56,24 @@ public class UserAccount {
 		return email;
 	}
 
+	public UUID getTenantId() {
+		return tenantId;
+	}
+
 	public String getPasswordHash() {
 		return passwordHash;
 	}
 
 	public Instant getCreatedAt() {
 		return createdAt;
+	}
+
+	public boolean isActive() {
+		return active;
+	}
+
+	void deactivate(Instant now) {
+		this.active = false;
+		this.updatedAt = now;
 	}
 }

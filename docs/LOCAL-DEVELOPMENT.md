@@ -18,6 +18,8 @@ cp .env.example .env
 
 Replace `POSTGRES_PASSWORD` in `.env` with a local-development-only password. Do not reuse a personal, production, or shared password. The root `.gitignore` excludes `.env` and other local environment files while keeping `.env.example` tracked.
 
+Set `AUTH_ACCESS_TOKEN_SIGNING_KEY` to a Base64-encoded random value of at least 32 bytes. Generate it locally and never commit or paste the real value into documentation or logs.
+
 ## Start the services
 
 ```sh
@@ -129,6 +131,27 @@ Passwords and password hashes are never returned. Common errors are:
 - `400 VALIDATION_ERROR`: email or password is missing or invalid, or the password does not satisfy the policy.
 - `400 INVALID_REQUEST`: the request body is missing or is not valid JSON.
 - `409 EMAIL_ALREADY_REGISTERED`: the email address is already registered. Email comparison is case-insensitive.
+
+## Login and session endpoints
+
+Login creates a 15-minute signed access token and a rotating 30-day refresh token:
+
+```text
+POST /api/v1/auth/login
+```
+
+```json
+{
+  "email": "developer@example.com",
+  "password": "LocalExample!234"
+}
+```
+
+Rotate the current refresh token at `POST /api/v1/auth/refresh` with a JSON body containing `refreshToken`. Reusing an older rotated token revokes the entire refresh-token session. End a session at `POST /api/v1/auth/logout` with the same request shape; successful and idempotent logout returns `204 No Content`.
+
+Raw refresh tokens are returned only at issuance and are never stored. PostgreSQL stores their SHA-256 hashes. Authentication failures deliberately use one generic `401 AUTHENTICATION_FAILED` response for unknown email, incorrect password, inactive users, and invalid refresh-token state.
+
+See `docs/AUTHENTICATION.md` for token format, expiration, rotation, reuse-detection, and session semantics.
 
 ## Stop the services
 
