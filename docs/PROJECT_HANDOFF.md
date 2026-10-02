@@ -76,7 +76,7 @@ The host JVM observed during diagnostics is Java 25.0.1, while the backend build
 
 - Business-domain services, CRUD policies, and protected domain endpoints.
 - LangChain4j.
-- Amazon Bedrock and a provider abstraction.
+- Amazon Bedrock and real external provider adapters.
 - Amazon API Gateway.
 - ECS/Fargate, ECR, RDS, ElastiCache, Secrets Manager, KMS, IAM, VPC, security groups, CloudFront/S3, and WAF.
 - OpenTelemetry, Datadog, and CloudWatch integrations.
@@ -280,6 +280,7 @@ ai-order-delivery-agent/
 | Implement login and session lifecycle | Complete | Login, signed access tokens, hashed rotating refresh tokens, reuse detection, expiration, logout, tests, and documentation. |
 | Implement authenticated context and authorization boundary | Complete | Bearer JWT validation, server-resolved tenant/user/session principal, active-session enforcement, reusable ownership guards, tests, and documentation. |
 | Implement tenant/user data-isolation boundary | Complete | Authoritative ownership lookup and reusable integration/order/conversation/message/credential guards with cross-tenant and same-tenant cross-user tests. |
+| Create external order provider abstraction | Complete | Provider-neutral five-operation Java interface, trusted call context, typed request/result models, safe exception hierarchy, contract tests, and no real adapter or credential handling. |
 | Verify FSEvents warning | Complete | Non-fatal Gradle/macOS watcher warning; no application/runtime correctness impact. |
 
 ## 7. Database schema
@@ -801,7 +802,7 @@ export DATABASE_PASSWORD="$POSTGRES_PASSWORD"
 ./gradlew test --rerun-tasks --console=plain
 ```
 
-Latest verified result on 2026-10-02 after Step 2:
+Latest verified result on 2026-10-02 after the external-provider abstraction:
 
 - `BackendApplicationTests`: 1 test, 0 failures.
 - `PostgreSqlConnectionTests`: 3 tests, 0 failures.
@@ -809,13 +810,15 @@ Latest verified result on 2026-10-02 after Step 2:
 - `UserAuthenticationIntegrationTests`: 12 tests, 0 failures.
 - `AuthorizationIntegrationTests`: 16 tests, 0 failures.
 - `TenantDataIsolationIntegrationTests`: 12 tests, 0 failures.
-- Total: 51 tests, 51 passed, 0 failed, 0 skipped.
+- `ExternalOrderProviderContractTests`: 7 tests, 0 failures.
+- Total: 58 tests, 58 passed, 0 failed, 0 skipped.
 - Flyway validated five migrations.
 - PostgreSQL JDBC driver, database connection, and `SELECT 1` were verified.
 - Registration cases verified: success, invalid email, missing email, missing password, weak password, case-insensitive duplicate, and stored Argon2id hash rather than plaintext.
 - Authentication cases verified: login success, unknown email, incorrect password, invalid/missing input, inactive user, access-token issuance, hashed refresh-token issuance, rotation, expiration, revocation, reuse detection, and logout.
 - Authorization cases verified: valid bearer authentication, missing/malformed/expired/wrong-signature/wrong-issuer/missing-claim tokens, trusted context, server-side tenant derivation, client override resistance, user/session mismatch rejection, cross-tenant denial, and revoked-session rejection.
 - Isolation cases verified: own-resource access, cross-tenant and same-tenant/cross-user denial, integration/order/conversation/message/credential boundaries, modification/delete authorization, and client identity override attempts.
+- Provider-contract cases verified: exact operation surface, trusted identity context, typed/validated requests, immutable results, safe failure hierarchy, and absence of credential-bearing fields.
 
 No frontend or extension automated tests exist.
 
@@ -961,7 +964,7 @@ Intended future workflow from the specification:
 - Tenant membership/invitation/administration.
 - Integration credential storage or encryption.
 - AWS Secrets Manager/KMS.
-- External provider interfaces/adapters or API calls.
+- Real external provider adapters or API calls.
 - Order, shipment, tracking, conversation, message, tool execution, or audit services/repositories/endpoints.
 - AI agent, LangChain4j, Bedrock, prompts, tools, or memory.
 - Redis integration in the backend.
@@ -1069,7 +1072,7 @@ The actual work has intentionally crossed the original broad phase ordering in s
 
 ## 32. Exact next implementation step
 
-Step 3 authorization and the tenant/data-isolation boundary are complete. The next feature must be selected and approved by the project owner. External provider interfaces and business-domain behavior have not started and must not be invented without provider documentation and an explicit task.
+Step 3 authorization, the tenant/data-isolation boundary, and the provider-neutral `ExternalOrderProvider` contract are complete. No real provider adapter, credential handling, or business-domain behavior has started. The next feature must be selected and approved by the project owner and must not invent provider behavior without documentation.
 
 ## CURRENT STATE
 
@@ -1088,9 +1091,10 @@ Step 3 authorization and the tenant/data-isolation boundary are complete. The ne
 - Bearer JWT signature/issuer/time/claim validation and server-side active-session verification.
 - Authenticated application context containing user, tenant, session, and authentication state.
 - Reusable tenant/user ownership guards with 401/403 behavior.
+- Provider-neutral `ExternalOrderProvider` contract with typed context, request/results, safe failures, and contract tests.
 - Isolation guards for integrations, orders, conversations, messages, and future integration credentials.
 - Local development documentation.
-- Fifty-one passing backend tests.
+- Fifty-eight passing backend tests.
 - Registration baseline commit `6a0721b` pushed to `origin/main`.
 - Step 2 authentication commit `0a73b4a` pushed to `origin/main`.
 - Diagnosis of the harmless Gradle/macOS FSEvents warning.
@@ -1112,6 +1116,7 @@ Step 3 authorization and the tenant/data-isolation boundary are complete. The ne
 - Tenant identity derived only from the authenticated server-side user row.
 - Immediate access-token rejection after session revocation.
 - Cross-tenant and same-tenant/cross-user resource ownership enforcement at the service/repository boundary.
+- Provider-neutral order/tracking contract without credentials, transport, vendor, cloud, or AI coupling.
 - Local Redis/PostgreSQL ports and persistence configuration.
 - Next.js landing page build artifacts.
 - Extension build artifacts and URL settings code.
@@ -1120,18 +1125,17 @@ Step 3 authorization and the tenant/data-isolation boundary are complete. The ne
 
 - Domain models/services/controllers and CRUD behavior for integrations, orders, conversations, messages, shipments, tracking, and tools.
 - Actual credential and credential-metadata storage or retrieval.
-- Integration credentials/providers.
+- Integration credentials and real provider adapters/calls.
 - Agent, tools, memory, AI models, and evaluation.
 - Most functional frontend and extension screens.
 - Redis-backed application behavior.
 - AWS, CI/CD, deployment, observability, cost controls, and production security.
-- Commit/push of the currently uncommitted Step 3 and tenant-isolation changes.
 
 ### What should be done next
 
-1. Inspect and report the uncommitted Step 3 and tenant-isolation changes.
+1. Inspect and report the uncommitted external-provider abstraction changes.
 2. Ask separately whether to create and push a checkpoint; do not assume permission.
-3. Obtain explicit approval for the next domain/service task; ExternalOrderProvider and other provider behavior have not started.
+3. Obtain explicit approval and real provider documentation before implementing a provider adapter, credential flow, transport, or business-domain service.
 4. Preserve the authenticated context and reuse TenantDataAuthorizationService in every future protected resource service.
 
 ### Exact next Codex task/prompt
