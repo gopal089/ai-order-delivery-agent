@@ -1,0 +1,136 @@
+.options {
+  min-height: 100vh;
+}
+
+.options__header {
+  width: min(100% - 2rem, 70rem);
+  min-height: 5rem;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.options__header > span {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.options__layout {
+  width: min(100% - 2rem, 70rem);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(24rem, 1.1fr);
+  gap: 6rem;
+  padding-block: 6rem;
+}
+
+.options__intro h1 {
+  max-width: 12ch;
+  margin: 1rem 0 1.5rem;
+  font-size: clamp(2.75rem, 5vw, 4.75rem);
+  font-weight: 650;
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+
+.options__intro > p:last-child {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.settings-form {
+  align-self: start;
+  padding: 2rem;
+  border: 1px solid var(--ink);
+  background: var(--panel);
+  box-shadow: 0.75rem 0.75rem 0 var(--signal);
+}
+
+.field label,
+.security-note strong {
+  display: block;
+  margin-bottom: 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 750;
+}
+
+.field input {
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
+  padding-inline: 0.875rem;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.field input:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.field > p,
+.security-note p {
+  margin: 0.625rem 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.security-note {
+  margin-top: 2rem;
+  padding: 1rem;
+  border-left: 0.25rem solid var(--signal-dark);
+  background: var(--paper);
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.save-status {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.save-status--success {
+  color: var(--success);
+}
+
+.save-status--error {
+  color: var(--danger);
+}
+
+@media (max-width: 48rem) {
+  .options__layout {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+    padding-block: 4rem;
+  }
+
+  .settings-form {
+    padding: 1.25rem;
+    box-shadow: 0.5rem 0.5rem 0 var(--signal);
+  }
+
+  .form-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -1,0 +1,59 @@
+:root {
+  --paper: #f4f2eb;
+  --panel: #eeece4;
+  --ink: #171813;
+  --muted: #666860;
+  --muted-light: #aaaca4;
+  --line: #d5d3ca;
+  --line-strong: #aaa89f;
+  --line-dark: #3a3b35;
+  --grid: rgba(23, 24, 19, 0.055);
+  --signal: #d9ff57;
+  --signal-dark: #536c00;
+  --success: #6fdf7e;
+  --success-dark: #23702d;
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  min-width: 20rem;
+  scroll-behavior: smooth;
+  scroll-padding-top: 1rem;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:focus-visible {
+  outline: 3px solid var(--signal-dark);
+  outline-offset: 4px;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

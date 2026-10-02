@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "AI Order & Delivery Agent",
+  "description": "Secure access to order and delivery assistance through your configured backend.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "Open AI Order & Delivery Agent",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "permissions": ["storage"]
+}

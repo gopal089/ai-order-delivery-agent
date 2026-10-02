@@ -1,0 +1,14 @@
+# Local environment files may contain credentials.
+.env
+.env.*
+!.env.example
+
+# Local secret material.
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# macOS metadata.
+.DS_Store
