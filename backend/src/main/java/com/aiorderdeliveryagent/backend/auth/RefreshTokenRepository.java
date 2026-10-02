@@ -13,6 +13,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+	boolean existsByTenantIdAndUserIdAndSessionIdAndRevokedAtIsNullAndExpiresAtAfter(
+			UUID tenantId,
+			long userId,
+			UUID sessionId,
+			Instant expiresAt);
 
 	@Lock(LockModeType.PESSIMISTIC_WRITE)
 	@Query("select token from RefreshToken token where token.tokenHash = :tokenHash")

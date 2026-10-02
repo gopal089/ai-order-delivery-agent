@@ -21,8 +21,6 @@ import org.springframework.stereotype.Service;
 class TokenService {
 
 	private static final int REFRESH_TOKEN_BYTES = 32;
-	private static final String ISSUER = "ai-order-delivery-agent";
-
 	private final JwtEncoder jwtEncoder;
 	private final AuthTokenProperties properties;
 	private final Clock clock;
@@ -38,7 +36,7 @@ class TokenService {
 		Instant issuedAt = clock.instant();
 		Instant expiresAt = issuedAt.plus(properties.accessTokenTtl());
 		JwtClaimsSet claims = JwtClaimsSet.builder()
-				.issuer(ISSUER)
+				.issuer(AuthTokenProperties.ACCESS_TOKEN_ISSUER)
 				.subject(Long.toString(principal.userId()))
 				.issuedAt(issuedAt)
 				.expiresAt(expiresAt)

@@ -1,10 +1,13 @@
 package com.aiorderdeliveryagent.backend.config;
 
+import java.time.Clock;
 import java.util.Base64;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.aiorderdeliveryagent.backend.auth.AccessTokenAuthenticationConverter;
+import com.aiorderdeliveryagent.backend.auth.AccessTokenClaimsValidator;
 import com.aiorderdeliveryagent.backend.auth.AuthTokenProperties;
 import com.aiorderdeliveryagent.backend.auth.UserAccountRepository;
 
@@ -14,17 +17,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
+import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -32,7 +38,9 @@ import org.springframework.security.web.SecurityFilterChain;
 public class SecurityConfiguration {
 
 	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+	SecurityFilterChain securityFilterChain(
+			HttpSecurity http,
+			AccessTokenAuthenticationConverter accessTokenAuthenticationConverter) throws Exception {
 		http
 				.csrf(csrf -> csrf.disable())
 				.httpBasic(httpBasic -> httpBasic.disable())
@@ -41,8 +49,11 @@ public class SecurityConfiguration {
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers("/api/v1/auth/**").permitAll()
-						.anyRequest().denyAll())
-				.exceptionHandling(Customizer.withDefaults());
+						.anyRequest().authenticated())
+				.oauth2ResourceServer(resourceServer -> resourceServer
+						.jwt(jwt -> jwt.jwtAuthenticationConverter(accessTokenAuthenticationConverter))
+						.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
+						.accessDeniedHandler(new BearerTokenAccessDeniedHandler()));
 		return http.build();
 	}
 
@@ -99,7 +110,13 @@ public class SecurityConfiguration {
 	}
 
 	@Bean
-	JwtDecoder jwtDecoder(SecretKey accessTokenSigningKey) {
-		return NimbusJwtDecoder.withSecretKey(accessTokenSigningKey).macAlgorithm(MacAlgorithm.HS256).build();
+	JwtDecoder jwtDecoder(SecretKey accessTokenSigningKey, Clock clock) {
+		NimbusJwtDecoder decoder = NimbusJwtDecoder.withSecretKey(accessTokenSigningKey)
+				.macAlgorithm(MacAlgorithm.HS256)
+				.build();
+		decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+				JwtValidators.createDefaultWithIssuer(AuthTokenProperties.ACCESS_TOKEN_ISSUER),
+				new AccessTokenClaimsValidator(clock)));
+		return decoder;
 	}
 }

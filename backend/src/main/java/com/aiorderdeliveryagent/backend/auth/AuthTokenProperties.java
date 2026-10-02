@@ -9,6 +9,7 @@ public record AuthTokenProperties(
 		String accessTokenSigningKey,
 		Duration accessTokenTtl,
 		Duration refreshTokenTtl) {
+	public static final String ACCESS_TOKEN_ISSUER = "ai-order-delivery-agent";
 
 	public AuthTokenProperties {
 		if (accessTokenTtl == null || accessTokenTtl.isZero() || accessTokenTtl.isNegative()) {

@@ -74,7 +74,7 @@ The host JVM observed during diagnostics is Java 25.0.1, while the backend build
 
 ### Planned but not implemented
 
-- Bearer-token request authentication and application authorization.
+- Business-domain services, CRUD policies, and protected domain endpoints.
 - LangChain4j.
 - Amazon Bedrock and a provider abstraction.
 - Amazon API Gateway.
@@ -264,8 +264,8 @@ ai-order-delivery-agent/
 
 | Step | Status | Notes |
 |---|---|---|
-| Create public project repository and local root | Complete locally | Repository name `ai-order-delivery-agent`; Git initialized; public GitHub remote configured. No commit exists yet. |
-| Connect/verify GitHub repository | Partially durable | Remote is configured for `gopal089`; branch is `main`. Current Git history is empty, so no project files are committed/pushed. |
+| Create public project repository and local root | Complete | Repository name `ai-order-delivery-agent`; Git initialized; public GitHub remote configured. |
+| Connect/verify GitHub repository | Complete | Remote is configured for `gopal089`; local `main` tracks `origin/main`; registration and Step 2 checkpoints are pushed. |
 | Create monorepo structure | Complete | Backend, web, extension, evaluation, infrastructure, docs, and `.github` exist. |
 | Create Java/Spring Boot backend | Complete scaffold | Java 21 toolchain, Spring Boot 4.1.1, Gradle, application starts. |
 | Create React/Next.js web application | Complete scaffold | Responsive landing page exists; no registration/login/dashboard integration. |
@@ -278,6 +278,8 @@ ai-order-delivery-agent/
 | Create initial database schema | Complete | Ten requested tables, composite ownership constraints, indexes, cache metadata. |
 | Implement user registration | Complete | Endpoint, validation, Argon2id, duplicate protection, JPA persistence, error handling, tests, docs. |
 | Implement login and session lifecycle | Complete | Login, signed access tokens, hashed rotating refresh tokens, reuse detection, expiration, logout, tests, and documentation. |
+| Implement authenticated context and authorization boundary | Complete | Bearer JWT validation, server-resolved tenant/user/session principal, active-session enforcement, reusable ownership guards, tests, and documentation. |
+| Implement tenant/user data-isolation boundary | Complete | Authoritative ownership lookup and reusable integration/order/conversation/message/credential guards with cross-tenant and same-tenant cross-user tests. |
 | Verify FSEvents warning | Complete | Non-fatal Gradle/macOS watcher warning; no application/runtime correctness impact. |
 
 ## 7. Database schema
@@ -359,7 +361,7 @@ All requested application tables are in the PostgreSQL `public` schema. Every ta
 - Tenant/time and actor/time indexes.
 - Audit event production is not implemented.
 
-Database-level RLS is **not** enabled. Current isolation is structural ownership through `tenant_id`, `user_id`, composite unique keys, and composite foreign keys. Runtime authorization still needs Spring Security and authenticated context.
+Database-level RLS is **not** enabled. Structural ownership uses `tenant_id`, `user_id`, composite unique keys, and composite foreign keys. Spring Security now establishes a server-resolved tenant/user/session context, and reusable ownership guards are available; individual business-domain services are not implemented yet.
 
 ## 8. Flyway migrations
 
@@ -502,7 +504,7 @@ All profiles use the same JPA safety settings and external database configuratio
 
 ## 13. Registration and authentication implementation
 
-Registration, login, access-token issuance, refresh-token rotation/reuse detection, and logout are implemented. OAuth, account recovery, email verification, rate limiting, and protected-resource authorization are not implemented.
+Registration, login, access-token issuance, refresh-token rotation/reuse detection, logout, bearer-token request authentication, and reusable tenant/user ownership guards are implemented. OAuth, account recovery, email verification, rate limiting, and business-domain authorization are not implemented.
 
 Registration flow:
 
@@ -608,7 +610,7 @@ Accepts the current opaque refresh token, revokes it, and returns a new access/r
 
 Accepts a refresh token, revokes the full session family, and returns `204 No Content`. Logout is idempotent and does not disclose token state.
 
-No protected business endpoint or bearer-token request authentication is implemented yet. See `docs/AUTHENTICATION.md` for the complete Step 2 design.
+No protected business-domain endpoint is implemented yet. Bearer-token request authentication and the reusable authorization boundary are described in `docs/AUTHORIZATION.md`.
 
 ## 15. Security decisions already implemented
 
@@ -632,7 +634,7 @@ No protected business endpoint or bearer-token request authentication is impleme
 - Tool execution and audit metadata are documented as redacted-only.
 - External order/shipment cache columns require explicit expiration metadata.
 
-Not yet implemented: bearer-token request authentication, authorization, secure headers, CORS policy, rate limiting, brute-force controls, RLS, encrypted integration credentials, audit production, secret scanning CI, dependency/container scanning, TLS termination, and cloud IAM. CSRF is disabled for the stateless JSON token API because it does not use ambient cookie authentication.
+Not yet implemented: business-domain authorization, secure-header policy review, CORS policy, rate limiting, brute-force controls, RLS, encrypted integration credentials, audit production, secret scanning CI, dependency/container scanning, TLS termination, and cloud IAM. CSRF is disabled for the stateless JSON token API because it does not use ambient cookie authentication.
 
 ## 16. Tenant-isolation design
 
@@ -805,11 +807,15 @@ Latest verified result on 2026-10-02 after Step 2:
 - `PostgreSqlConnectionTests`: 3 tests, 0 failures.
 - `UserRegistrationIntegrationTests`: 7 tests, 0 failures.
 - `UserAuthenticationIntegrationTests`: 12 tests, 0 failures.
-- Total: 23 tests, 23 passed, 0 failed, 0 skipped.
+- `AuthorizationIntegrationTests`: 16 tests, 0 failures.
+- `TenantDataIsolationIntegrationTests`: 12 tests, 0 failures.
+- Total: 51 tests, 51 passed, 0 failed, 0 skipped.
 - Flyway validated five migrations.
 - PostgreSQL JDBC driver, database connection, and `SELECT 1` were verified.
 - Registration cases verified: success, invalid email, missing email, missing password, weak password, case-insensitive duplicate, and stored Argon2id hash rather than plaintext.
 - Authentication cases verified: login success, unknown email, incorrect password, invalid/missing input, inactive user, access-token issuance, hashed refresh-token issuance, rotation, expiration, revocation, reuse detection, and logout.
+- Authorization cases verified: valid bearer authentication, missing/malformed/expired/wrong-signature/wrong-issuer/missing-claim tokens, trusted context, server-side tenant derivation, client override resistance, user/session mismatch rejection, cross-tenant denial, and revoked-session rejection.
+- Isolation cases verified: own-resource access, cross-tenant and same-tenant/cross-user denial, integration/order/conversation/message/credential boundaries, modification/delete authorization, and client identity override attempts.
 
 No frontend or extension automated tests exist.
 
@@ -839,7 +845,7 @@ Tests may print an OpenJDK warning that class sharing is limited because the boo
 
 ## 24. Known unresolved issues and transient local state
 
-- The registration baseline is committed and pushed on `main` as `6a0721b`. Step 2 authentication changes are currently uncommitted until the user explicitly requests another checkpoint.
+- Registration commit `6a0721b` and Step 2 authentication commit `0a73b4a` are pushed on `main`. Step 3 authorization and tenant-isolation changes are currently uncommitted until the user explicitly requests another checkpoint.
 - No CI, branch protection, or pull-request workflow is configured.
 - `IMPLEMENTATION_STATUS.md` required by the master specification does not exist.
 - Most planned documentation files do not exist.
@@ -873,8 +879,9 @@ No AWS or remote deployed services exist.
 - Current local branch: `main`.
 - Default intended branch: `main`.
 - The registration baseline root commit is `6a0721b5fffa5e030db7f83706e5cc58a327b877`.
-- Local `main` tracks `origin/main`, and the baseline commit was verified on the remote.
-- Step 2 authentication changes are not committed by this implementation task.
+- Step 2 authentication is committed as `0a73b4a980ba57249551b9bf70abf9cedce805f6`.
+- Local `main` tracks `origin/main`, and both checkpoints were verified on the remote.
+- Step 3 authorization and tenant-isolation changes are not committed by this implementation task.
 
 Do not claim Step 2 is in GitHub until its changes are explicitly committed and pushed. Before committing, review generated files, confirm `.env` is ignored, run a secret scan, and exclude build/cache artifacts. Do not push, create branches, or alter GitHub settings without the user’s instruction.
 
@@ -901,6 +908,8 @@ Intended future workflow from the specification:
 | `backend/src/main/resources/application-*.yml` | Environment-specific external DataSource and runtime settings. |
 | `backend/src/main/resources/db/migration/V1…V5.sql` | Immutable applied schema history. |
 | `docs/AUTHENTICATION.md` | Step 2 access-token, refresh-token, rotation, reuse, and logout decisions. |
+| `docs/AUTHORIZATION.md` | Step 3 bearer validation, server-resolved identity, and reusable ownership boundary. |
+| `docs/TENANT-ISOLATION.md` | Resource ownership lookup, isolation enforcement, verified cases, and deferred domain behavior. |
 | `BackendApplication.java` | Spring Boot entry point. |
 | `PasswordConfiguration.java` | Argon2id encoder and UTC clock beans. |
 | `RegisterRequest.java` | Registration request and validation rules. |
@@ -911,7 +920,12 @@ Intended future workflow from the specification:
 | `UserAuthenticationService.java` | Credential authentication and transactional session lifecycle. |
 | `TokenService.java` | JWT issuance plus opaque refresh-token generation and hashing. |
 | `RefreshToken.java` / `RefreshTokenRepository.java` | Refresh-token persistence, row locking, and session revocation. |
-| `SecurityConfiguration.java` | Stateless Spring Security authentication configuration and JWT cryptography beans. |
+| `SecurityConfiguration.java` | Stateless Spring Security credential and bearer-token configuration plus JWT cryptography/validation. |
+| `AccessTokenAuthenticationConverter.java` | Resolves token user/session claims against authoritative user and active-session records. |
+| `AuthenticatedUserContextProvider.java` | Supplies trusted user/tenant/session identity from Spring Security context. |
+| `TenantAuthorization.java` | Reusable tenant and owner enforcement guards for future services. |
+| `TenantDataAuthorizationService.java` | Reusable resource-specific isolation boundary for current tenant/user-owned tables. |
+| `TenantOwnedResourceRepository.java` | Ownership-metadata-only queries for isolation checks. |
 | `UserAccount.java` | JPA mapping to the existing `users` table. |
 | `UserAccountRepository.java` | User persistence and case-insensitive email lookup. |
 | `RegistrationExceptionHandler.java` | Safe 400/409 registration error responses. |
@@ -941,7 +955,7 @@ Intended future workflow from the specification:
 
 - OAuth/social authentication.
 - Email verification, password reset, or account recovery.
-- Bearer-token request authentication and application authorization rules.
+- Business-domain ownership checks and protected domain endpoints.
 - Rate limiting or brute-force protection.
 - PostgreSQL RLS.
 - Tenant membership/invitation/administration.
@@ -1055,7 +1069,7 @@ The actual work has intentionally crossed the original broad phase ordering in s
 
 ## 32. Exact next implementation step
 
-Step 2 authentication is complete. The next feature phase is **Step 3 authorization**, but it must not begin without separate user approval. That phase must validate access-token signatures and expiration, establish an authenticated principal from trusted token claims, and enforce user/tenant ownership on protected operations. It must not accept authoritative tenant or user IDs from request input.
+Step 3 authorization and the tenant/data-isolation boundary are complete. The next feature must be selected and approved by the project owner. External provider interfaces and business-domain behavior have not started and must not be invented without provider documentation and an explicit task.
 
 ## CURRENT STATE
 
@@ -1071,9 +1085,14 @@ Step 2 authentication is complete. The next feature phase is **Step 3 authorizat
 - Initial ten-table tenant-aware schema.
 - User registration endpoint with Argon2id hashing and validation.
 - Login, signed access-token issuance, rotating hashed refresh tokens, reuse detection, and logout/session revocation.
+- Bearer JWT signature/issuer/time/claim validation and server-side active-session verification.
+- Authenticated application context containing user, tenant, session, and authentication state.
+- Reusable tenant/user ownership guards with 401/403 behavior.
+- Isolation guards for integrations, orders, conversations, messages, and future integration credentials.
 - Local development documentation.
-- Twenty-three passing backend tests.
+- Fifty-one passing backend tests.
 - Registration baseline commit `6a0721b` pushed to `origin/main`.
+- Step 2 authentication commit `0a73b4a` pushed to `origin/main`.
 - Diagnosis of the harmless Gradle/macOS FSEvents warning.
 
 ### Currently working
@@ -1089,37 +1108,42 @@ Step 2 authentication is complete. The next feature phase is **Step 3 authorizat
 - Argon2id persistence without plaintext storage.
 - Fifteen-minute signed access tokens and 30-day rolling refresh-token sessions.
 - Refresh-token rotation, expiration, revocation, and session-wide reuse response.
+- Bearer authentication for every non-auth route.
+- Tenant identity derived only from the authenticated server-side user row.
+- Immediate access-token rejection after session revocation.
+- Cross-tenant and same-tenant/cross-user resource ownership enforcement at the service/repository boundary.
 - Local Redis/PostgreSQL ports and persistence configuration.
 - Next.js landing page build artifacts.
 - Extension build artifacts and URL settings code.
 
 ### Not implemented
 
-- Bearer-token request authentication, authorization, and authenticated tenant context.
+- Domain models/services/controllers and CRUD behavior for integrations, orders, conversations, messages, shipments, tracking, and tools.
+- Actual credential and credential-metadata storage or retrieval.
 - Integration credentials/providers.
 - Agent, tools, memory, AI models, and evaluation.
 - Most functional frontend and extension screens.
 - Redis-backed application behavior.
 - AWS, CI/CD, deployment, observability, cost controls, and production security.
-- Commit/push of the currently uncommitted Step 2 changes.
+- Commit/push of the currently uncommitted Step 3 and tenant-isolation changes.
 
 ### What should be done next
 
-1. Inspect and report the uncommitted Step 2 changes.
-2. Ask separately whether to create and push a Step 2 checkpoint; do not assume permission.
-3. Start Step 3 authorization only after explicit approval and a review of principal/claim/tenant enforcement semantics.
-4. Do not implement OAuth, frontend/extension authentication, RLS, integrations, AI, or infrastructure as part of Step 3.
+1. Inspect and report the uncommitted Step 3 and tenant-isolation changes.
+2. Ask separately whether to create and push a checkpoint; do not assume permission.
+3. Obtain explicit approval for the next domain/service task; ExternalOrderProvider and other provider behavior have not started.
+4. Preserve the authenticated context and reuse TenantDataAuthorizationService in every future protected resource service.
 
 ### Exact next Codex task/prompt
 
 ```text
-Implement Step 3 bearer-token authentication and authorization only after explicit approval.
+Continue only with the next explicitly approved feature.
 
-First inspect docs/PROJECT_HANDOFF.md, docs/AUTHENTICATION.md, the current Git status, V1–V5, the authentication implementation, and all tests. Do not modify any already-applied migration.
+First inspect docs/PROJECT_HANDOFF.md, docs/AUTHENTICATION.md, docs/AUTHORIZATION.md, docs/TENANT-ISOLATION.md, the current Git status, V1–V5, and all current tests. Do not modify any already-applied migration.
 
-Validate signed access tokens, create a trusted authenticated principal, and design tenant/user ownership checks before adding protected business operations. Never trust client-supplied tenant or user IDs as authority. Preserve the Step 2 token response and generic authentication-failure contracts.
+For a protected business service, derive user, tenant, and session exclusively from AuthenticatedUserContextProvider and reuse TenantDataAuthorizationService. Never treat client-supplied tenant or user IDs as authority.
 
-Do not implement OAuth, RLS, frontend or extension changes, integrations, AI, AWS, or unrelated functionality. Stop and report before starting another feature.
+Do not implement OAuth, RLS, frontend or extension changes, integrations, AI, AWS, or unrelated functionality unless explicitly included in the approved task. Stop and report before starting another feature.
 ```
 
 ## CONTINUATION INSTRUCTIONS
@@ -1128,7 +1152,7 @@ For a new ChatGPT/Codex session:
 
 1. Open the repository root and read this entire file before changing anything.
 2. Read any repository-local agent instructions relevant to the files being changed, especially `web/AGENTS.md` for web work.
-3. Run `git status --short`, `git branch --show-current`, `git log --oneline`, and `git remote -v`. Expect the pushed registration baseline plus uncommitted Step 2 changes until proven otherwise.
+3. Run `git status --short`, `git branch --show-current`, `git log --oneline`, and `git remote -v`. Expect pushed registration/Step 2 checkpoints plus uncommitted Step 3 and tenant-isolation changes until proven otherwise.
 4. Never open, print, summarize, or transmit the ignored `.env`. Use `.env.example` only for variable names and placeholders.
 5. Run `docker compose ps` and verify PostgreSQL/Redis health. Inspect ports 8080 and 18080 before starting another backend because temporary verification processes may remain.
 6. Read the exact source, migration, configuration, and tests related to the requested task. Do not rely only on this summary.

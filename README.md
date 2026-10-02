@@ -6,6 +6,6 @@ This repository is being built incrementally, with customer API credentials kept
 
 ## Status
 
-The local backend currently implements user registration plus Spring Security credential authentication, short-lived access-token issuance, rotating hashed refresh tokens, refresh-token reuse detection, and logout/session revocation. Authorization, external integrations, AI functionality, and cloud deployment are not implemented.
+The local backend currently implements user registration, Spring Security credential authentication, short-lived access tokens, rotating hashed refresh tokens, session revocation, bearer-token request authentication, and a reusable tenant-aware ownership boundary. Business-domain authorization, external integrations, AI functionality, and cloud deployment are not implemented.
 
-See `docs/PROJECT_HANDOFF.md` for the complete current state and `docs/AUTHENTICATION.md` for the Step 2 token/session design.
+See `docs/PROJECT_HANDOFF.md` for the complete current state, `docs/AUTHENTICATION.md` for token/session design, `docs/AUTHORIZATION.md` for the authenticated principal, and `docs/TENANT-ISOLATION.md` for resource ownership enforcement.

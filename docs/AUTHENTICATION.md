@@ -1,6 +1,6 @@
 # Authentication design
 
-This document records the Step 2 authentication decisions. Authorization and tenant-scoped request enforcement are intentionally deferred to Step 3.
+This document records the Step 2 token/session decisions. Step 3 bearer authentication and tenant-aware authorization are documented in `docs/AUTHORIZATION.md`.
 
 ## Endpoints
 
@@ -22,7 +22,7 @@ Access tokens are compact JWTs signed with HMAC-SHA-256 by Spring Security's JOS
 
 The signing key is read from `AUTH_ACCESS_TOKEN_SIGNING_KEY`. It must be a Base64-encoded random value that decodes to at least 32 bytes. There is no committed default. The application fails during startup when the key is absent, malformed, or too short.
 
-Access-token verification and authorization filters are deliberately not enabled in Step 2. Until Step 3, no endpoint derives tenant authorization from an access token. Revoking a session prevents future refreshes but does not invalidate an already-issued access token; its maximum remaining lifetime is bounded by the 15-minute expiration.
+Step 3 now verifies access tokens on protected requests and derives tenant identity from the server-side user record. An active refresh-token session must match the JWT's `sub` and `sid`, so logout or session-family revocation rejects the access token on subsequent requests even before JWT expiration.
 
 ## Refresh tokens and sessions
 
@@ -51,4 +51,4 @@ Logout accepts the current refresh token and revokes its whole session family. I
 
 Spring Security's `DaoAuthenticationProvider` performs password verification with the existing Argon2id `PasswordEncoder`. HTTP Basic, form login, server-side HTTP sessions, and Spring Security's built-in logout endpoint are disabled. The API is stateless and CSRF protection is disabled because authentication credentials are carried explicitly in JSON and no ambient cookie authentication is used.
 
-All `/api/v1/auth/**` routes are public so clients can register and obtain/rotate/revoke tokens. Other routes are fail-closed by the Step 2 filter chain. No bearer-token authentication filter, protected business endpoint, tenant authorization, role model, OAuth flow, or PostgreSQL RLS policy is implemented in this step.
+All `/api/v1/auth/**` routes are public so clients can register and obtain/rotate/revoke tokens. Every other route requires a validated bearer token. No protected business-domain endpoint, role model, OAuth flow, or PostgreSQL RLS policy is implemented.
