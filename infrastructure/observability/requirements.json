@@ -1,0 +1,51 @@
+{
+  "kind": "review-only-observability-requirements",
+  "deployable": false,
+  "productionDeployment": "BLOCKED",
+  "telemetry": {
+    "default": "NOOP",
+    "exportEnabled": false,
+    "collectorEndpoint": null,
+    "approvedExportDestination": null,
+    "samplingPolicy": null,
+    "spanAttributeAllowlist": ["http.request.method", "http.route", "http.response.status_code"],
+    "customerIdentityLabels": false,
+    "requestIdLabel": false,
+    "bodyCapture": false,
+    "headerCapture": false,
+    "sqlStatementCapture": false,
+    "exceptionMessageCapture": false,
+    "promptResponseCapture": false
+  },
+  "datadog": {
+    "status": "NOT VERIFIED",
+    "organization": null,
+    "site": null,
+    "agentEndpoint": null,
+    "credentialDelivery": "DECISION REQUIRED: infrastructure-managed secret; never an application span attribute",
+    "apiKeyIncluded": false,
+    "dashboardsVerified": false,
+    "monitorsVerified": false
+  },
+  "cloudwatch": {
+    "status": "BLOCKED",
+    "account": null,
+    "region": null,
+    "logGroup": null,
+    "retentionDays": null,
+    "kmsKey": null,
+    "executionRole": null,
+    "awslogsConfigured": false,
+    "alarmsVerified": false
+  },
+  "securityMonitoring": {
+    "status": "LOCAL SIGNALS ONLY",
+    "alertThreshold": null,
+    "evaluationWindow": null,
+    "notificationDestination": null,
+    "alertOwner": null,
+    "deliveryTested": false,
+    "infrastructureEventsVerified": false,
+    "semanticPromptInjectionDetectionImplemented": false
+  }
+}

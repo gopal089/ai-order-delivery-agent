@@ -16,6 +16,10 @@ import static com.aiorderdeliveryagent.backend.ai.AiModelContract.*;
 /** Backend-only read orchestration, no HTTP endpoint, production model, history writes or AI SDK. */
 @Service
 public class AgentOrchestrationService {
+	private com.aiorderdeliveryagent.backend.observability.SafeTelemetry telemetry =
+		new com.aiorderdeliveryagent.backend.observability.SafeTelemetry(io.opentelemetry.api.OpenTelemetry.noop());
+	@Autowired
+	public void setTelemetry(com.aiorderdeliveryagent.backend.observability.SafeTelemetry telemetry) { this.telemetry=telemetry; }
 	static final String INSTRUCTIONS=SystemInstructions.TEXT;
 	private final AuthenticatedUserContextProvider contexts;
 	private final ConversationContextService conversations;
@@ -44,7 +48,8 @@ public class AgentOrchestrationService {
 		var evidence=new ArrayList<ToolResult>();var provenance=new ArrayList<RetrievalEvidence>();var facts=new ArrayList<ControlledFact>();int count=0;
 		while(true) {
 			var request=new Request(INSTRUCTIONS,currentMessage,history,List.of(Tool.values()),evidence);
-			var response=AiExecutionGuard.call(()->model.generate(request),remaining(deadline,modelTimeout),false);
+			var response=timed(com.aiorderdeliveryagent.backend.observability.SafeTelemetry.Operation.MODEL_WAIT,
+				()->model.generate(request),remaining(deadline,modelTimeout),false);
 			if(response==null || (response.text().isPresent()==!response.toolCalls().isEmpty())
 					|| response.text().filter(String::isBlank).isPresent()) throw new AiBoundaryException(AiBoundaryException.Reason.MALFORMED_RESPONSE);
 			if(response.toolCalls().isEmpty()) return new Result(response.text().orElseThrow(),evidence,response.metadata(),response.usage(),Trust.MODEL_GENERATED_UNVERIFIED,provenance,facts);
@@ -54,7 +59,8 @@ public class AgentOrchestrationService {
 				try {tool=Tool.valueOf(call.name());}catch(IllegalArgumentException failure){throw new AiBoundaryException(AiBoundaryException.Reason.UNKNOWN_TOOL);}
 				long id=arguments(tool,call.arguments());
 				try {
-					Object data=AiExecutionGuard.call(()->invoke(bound,tool,id),remaining(deadline,toolTimeout),true);
+					Object data=timed(com.aiorderdeliveryagent.backend.observability.SafeTelemetry.Operation.TOOL_WAIT,
+						()->invoke(bound,tool,id),remaining(deadline,toolTimeout),true);
 					var retrieval=RetrievalEvidence.success(tool,integrationId,id,data);
 					var projected=ControlledFact.project(provenance.size(),tool,data);
 					evidence.add(new ToolResult(tool.name(),true,json.writeValueAsString(data),Optional.empty(),Trust.EXTERNAL_UNTRUSTED));
@@ -71,6 +77,13 @@ public class AgentOrchestrationService {
 				catch(RuntimeException failure) {evidence.add(failed(tool,"TOOL_FAILED"));}
 				if(provenance.size()<evidence.size()) provenance.add(RetrievalEvidence.failure(tool,integrationId,evidence.getLast().errorCode().orElse("TOOL_FAILED")));
 			}
+		}
+	}
+	private <T> T timed(com.aiorderdeliveryagent.backend.observability.SafeTelemetry.Operation operation,
+			java.util.concurrent.Callable<T> task, Duration timeout, boolean tool) {
+		try(var span=telemetry.start(operation)) {
+			try { return AiExecutionGuard.call(task,timeout,tool); }
+			catch(RuntimeException failure) { span.failed();throw failure; }
 		}
 	}
 	private Duration remaining(long deadline,Duration max) {
