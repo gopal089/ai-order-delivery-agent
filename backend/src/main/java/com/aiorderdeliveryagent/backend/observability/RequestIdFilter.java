@@ -44,7 +44,7 @@ public class RequestIdFilter extends OncePerRequestFilter {
 				restoreContext(request, "sessionId", RequestContext.SESSION_ID_ATTRIBUTE);
 				var event = LOGGER.atInfo()
 						.addKeyValue("method", request.getMethod())
-						.addKeyValue("endpoint", request.getRequestURI())
+						.addKeyValue("endpoint", safeEndpoint(request))
 						.addKeyValue("status", response.getStatus())
 						.addKeyValue("durationMs", (System.nanoTime() - startedAt) / 1_000_000L);
 				event.log("http_request_completed");
@@ -61,6 +61,14 @@ public class RequestIdFilter extends OncePerRequestFilter {
 			return suppliedRequestId;
 		}
 		return UUID.randomUUID().toString();
+	}
+
+	private String safeEndpoint(HttpServletRequest request) {
+		// Server-selected route templates exclude client path values. Security-rejected
+		// and unmatched requests have no MVC mapping; never log the raw URI as a fallback.
+		Object route = request.getAttribute(
+				org.springframework.web.servlet.HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);
+		return route instanceof String template ? template : "UNMATCHED";
 	}
 
 	private void restoreContext(HttpServletRequest request, String mdcKey, String attributeKey) {

@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "scope": "Future architecture inventory; not an AWS account billing report",
+  "awsAccessPerformed": false,
+  "resourcesCreatedByThisBatch": 0,
+  "bedrockInvocationsByThisBatch": 0,
+  "currentAccountCost": {
+    "status": "NOT VERIFIED",
+    "amount": null,
+    "currency": null
+  },
+  "newResourceChargesFromThisBatch": "No AWS resources or model calls created by this work; unrelated account charges unknown",
+  "pricing": {
+    "status": "NOT VERIFIED",
+    "region": null,
+    "verifiedAt": null
+  },
+  "estimate": null,
+  "budgetApproval": "DECISION REQUIRED before any provisioning",
+  "drivers": [
+    {
+      "service": "ECS/Fargate",
+      "role": "runtime",
+      "variables": "task hours, task count, vCPU and memory, architecture",
+      "controls": "review DEV/QA sizing and stop/scale schedules",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "RDS PostgreSQL",
+      "role": "database",
+      "variables": "instance hours, storage, I/O, backup retention, HA",
+      "controls": "separate DEV/QA; right-size after measurement",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "ElastiCache/Redis",
+      "role": "cache",
+      "variables": "capacity or instance hours, HA, data transfer",
+      "controls": "review minimum capacity; isolation not optional",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "ECR",
+      "role": "images",
+      "variables": "stored GB-month, scan type/count, transfer",
+      "controls": "image lifecycle and vulnerability scan policy",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "API Gateway",
+      "role": "ingress",
+      "variables": "API type, regional request count, payload, transfer",
+      "controls": "approve timeout and request volume",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "WAF",
+      "role": "edge protection",
+      "variables": "web ACLs, rules, requests, managed rule options",
+      "controls": "approve ingress placement and rate rules",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "CloudWatch",
+      "role": "telemetry",
+      "variables": "ingested/stored logs, retention, metrics, alarms, traces",
+      "controls": "no prompts/secrets; bounded retention and cardinality",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "OpenTelemetry/Datadog",
+      "role": "optional telemetry",
+      "variables": "collector compute, export traffic, subscription/ingestion",
+      "controls": "not installed; approve vendor/data policy",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "Secrets Manager",
+      "role": "credentials",
+      "variables": "secret count, API requests, rotation execution",
+      "controls": "no live store; approve lifecycle and scope",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "KMS",
+      "role": "encryption",
+      "variables": "key type/count, cryptographic requests",
+      "controls": "approve key scope and rotation policy",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "Bedrock",
+      "role": "model",
+      "variables": "approved model/region, input/output tokens, inference mode",
+      "controls": "no adapter; 3-tool and deadline limits are not a spend cap",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "Data transfer",
+      "role": "network",
+      "variables": "regions, zones, internet egress, request/response bytes",
+      "controls": "cap provider responses; measure traffic before estimate",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "NAT Gateway",
+      "role": "conditional egress",
+      "variables": "gateway hours, processed GB, transfer",
+      "controls": "compare approved endpoints versus NAT; not provisioned",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "ALB/private ingress",
+      "role": "conditional ingress",
+      "variables": "load balancer hours, capacity units, target topology",
+      "controls": "ingress/WAF/end-to-end TLS decision pending",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "VPC endpoints",
+      "role": "conditional network",
+      "variables": "endpoint hours, AZ count, processed GB",
+      "controls": "approve required services; compare total topology cost",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    },
+    {
+      "service": "DNS/CDN/public IPv4",
+      "role": "conditional edge",
+      "variables": "zones, queries, storage/requests/transfer, address hours",
+      "controls": "approve hostname/CDN/public exposure requirements",
+      "price": null,
+      "usage": null,
+      "status": "NOT VERIFIED",
+      "source": "docs/PROJECT_HANDOFF.md; infrastructure/README.md; docs/API-GATEWAY-DESIGN.md"
+    }
+  ]
+}

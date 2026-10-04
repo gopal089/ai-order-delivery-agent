@@ -72,6 +72,11 @@ class ReportTests(unittest.TestCase):
             {"case": case, "pass": True, "latencyNanos": 12, "input": "synthetic-secret"})
             for case in sorted(report.CASES)]
         self.fixture(suite="test.AiEvaluationBaselineTests", out="\n".join(records), count=12)
+        fixture = self.directory / "TEST-fixture.xml"
+        content = fixture.read_text()
+        for case in sorted(report.CASES):
+            content = content.replace('name="check()"', f'name="{case}"', 1)
+        fixture.write_text(content)
         result = report.aggregate(self.directory, self.catalog)
         self.assertEqual(result["baselineStatus"], "PASS")
         self.assertEqual(len(result["baseline"]), 12)
@@ -96,5 +101,75 @@ class ReportTests(unittest.TestCase):
             {"case": "TOOL_SELECTION", "pass": True, "latencyNanos": 1})] * 12
         self.fixture(suite="test.AiEvaluationBaselineTests", out="\n".join(records), count=12)
         result = report.aggregate(self.directory, self.catalog)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertNotEqual(result["baselineStatus"], "PASS")
+
+    def test_duplicate_test_names_cannot_satisfy_parameterized_count(self):
+        evidence = self.catalog["categories"][0]["evidence"][0]
+        evidence.update(testNamePattern=r"\[[1-2]\] fixture", expectedCount=2,
+                        expectedNames=["[1] fixture", "[2] fixture"])
+        self.fixture(method="[1] fixture", count=2)
+        result = report.aggregate(self.directory, self.catalog)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertNotEqual(result["categories"][0]["status"], "PASS")
+
+    def test_distinct_but_wrong_parameter_set_cannot_pass(self):
+        evidence = self.catalog["categories"][0]["evidence"][0]
+        evidence.update(testNamePattern=r"\[[1-2]\] fixture.*", expectedCount=2,
+                        expectedNames=["[1] fixture A", "[2] fixture B"])
+        self.fixture(method="[1] fixture A", count=2)
+        fixture = self.directory / "TEST-fixture.xml"
+        fixture.write_text(fixture.read_text().replace('[1] fixture A', '[2] fixture A', 1))
+        self.assertEqual(report.aggregate(self.directory, self.catalog)["categories"][0]["status"], "NOT_RUN")
+
+    def test_untrusted_suite_name_is_not_exported(self):
+        self.fixture(suite="synthetic-secret.SecurityContext")
+        self.assertNotIn("synthetic-secret", json.dumps(report.aggregate(self.directory, self.catalog)))
+
+    def test_wrong_xml_root_cannot_pass(self):
+        self.directory.joinpath("TEST-fixture.xml").write_text('<not-a-suite/>')
+        self.assertEqual(report.aggregate(self.directory, self.catalog)["status"], "FAIL")
+
+    def test_baseline_pass_record_cannot_override_failed_assertion(self):
+        record = 'EVALUATION_RESULT ' + json.dumps({"case": "TOOL_SELECTION", "pass": True, "latencyNanos": 1})
+        self.fixture(suite="test.AiEvaluationBaselineTests", method="TOOL_SELECTION", child="<failure/>", out=record)
+        result = report.aggregate(self.directory, self.catalog)
+        self.assertEqual(result["status"], "FAIL")
+        self.assertNotEqual(result["baseline"][0]["status"], "PASS")
+
+    def test_baseline_records_need_corresponding_test_identities(self):
+        records = ['EVALUATION_RESULT ' + json.dumps({"case": case, "pass": True, "latencyNanos": 1})
+                   for case in sorted(report.CASES)]
+        self.fixture(suite="test.AiEvaluationBaselineTests", out='\n'.join(records), count=12)
+        self.assertNotEqual(report.aggregate(self.directory, self.catalog)["baselineStatus"], "PASS")
+
+    def test_declared_suite_count_must_match_evidence(self):
+        self.fixture()
+        fixture = self.directory / "TEST-fixture.xml"
+        fixture.write_text(fixture.read_text().replace('<testsuite ', '<testsuite tests="2" '))
+        self.assertEqual(report.aggregate(self.directory, self.catalog)["status"], "FAIL")
+
+    def test_declared_suite_failure_cannot_be_ignored(self):
+        self.fixture()
+        fixture = self.directory / "TEST-fixture.xml"
+        fixture.write_text(fixture.read_text().replace('<testsuite ', '<testsuite failures="1" '))
+        self.assertEqual(report.aggregate(self.directory, self.catalog)["status"], "FAIL")
+
+    def test_unknown_plain_method_names_are_not_exported(self):
+        self.fixture(method="synthetic_secret()")
+        self.assertNotIn("synthetic_secret", json.dumps(report.aggregate(self.directory, self.catalog)))
+
+    def test_non_object_baseline_emission_is_safe_failure(self):
+        self.fixture(suite="test.AiEvaluationBaselineTests", out="EVALUATION_RESULT []")
+        self.assertEqual(report.aggregate(self.directory, self.catalog)["status"], "FAIL")
+
+    def test_complete_baseline_cannot_pass_failed_execution(self):
+        records = ['EVALUATION_RESULT ' + json.dumps({"case": case, "pass": True, "latencyNanos": 1})
+                   for case in sorted(report.CASES)]
+        self.directory.joinpath("TEST-fixture.xml").write_text(
+            '<testsuite name="test.AiEvaluationBaselineTests">' +
+            ''.join(f'<testcase name="{case}"/>' for case in sorted(report.CASES)) +
+            '<system-out>' + '\n'.join(records) + '</system-out></testsuite>')
+        result = report.aggregate(self.directory, self.catalog, execution_exit=1)
         self.assertEqual(result["status"], "FAIL")
         self.assertNotEqual(result["baselineStatus"], "PASS")

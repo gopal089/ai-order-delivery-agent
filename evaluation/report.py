@@ -23,26 +23,33 @@ def junit_status(case):
     return "PASS"
 
 
-def safe_test_label(name):
-    # Parameterized display labels can contain argument values (URLs, prompts, credentials).
-    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*\(\)", name):
-        return name
-    return "parameterized-" + hashlib.sha256(name.encode()).hexdigest()[:16]
-
-
 def aggregate(directory, catalog, since=None, execution_exit=None):
     """Never copy system-out, prompts, exception text, tokens or credentials into results."""
     tests, baseline = [], []
     invalid = False
+    identities = set()
     for path in sorted(Path(directory).glob("TEST-*.xml")):
         if since is not None and path.stat().st_mtime < since:
             continue  # stale reports are not evidence of this run
         try:
             suite = ET.parse(path).getroot()
-        except (ET.ParseError, OSError):
+            cases = suite.findall("testcase")
+            if (suite.tag != "testsuite" or not suite.get("name")
+                    or any(not case.get("name") for case in cases)
+                    or (suite.get("tests") is not None and int(suite.get("tests")) != len(cases))):
+                raise ValueError()
+            for attribute, child in (("failures", "failure"), ("errors", "error"), ("skipped", "skipped")):
+                if (suite.get(attribute) is not None and
+                        int(suite.get(attribute)) != sum(case.find(child) is not None for case in cases)):
+                    raise ValueError()
+        except (ET.ParseError, OSError, ValueError):
             invalid = True
             continue
         for case in suite.findall("testcase"):
+            identity = (suite.get("name"), case.get("name"))
+            if identity in identities:
+                invalid = True
+            identities.add(identity)
             tests.append({"suite": suite.get("name", ""), "test": case.get("name", ""),
                           "status": junit_status(case)})
         if suite.get("name", "").endswith(".AiEvaluationBaselineTests"):
@@ -51,6 +58,8 @@ def aggregate(directory, catalog, since=None, execution_exit=None):
                     continue
                 try:
                     record = json.loads(line.removeprefix("EVALUATION_RESULT "))
+                    if not isinstance(record, dict):
+                        raise ValueError()
                     case_id = record["case"]
                     latency = record["latencyNanos"]
                     if (case_id not in CASES or record.get("pass") is not True
@@ -70,7 +79,10 @@ def aggregate(directory, catalog, since=None, execution_exit=None):
                      and (re.fullmatch(evidence["testNamePattern"], t["test"])
                           if "testNamePattern" in evidence else
                           t["test"].startswith(evidence["methodPrefix"] + "("))]
-            if len(found) != evidence.get("expectedCount", 1):
+            if (len(found) != evidence.get("expectedCount", 1)
+                    or len({t["test"] for t in found}) != len(found)
+                    or ("expectedNames" in evidence and
+                        {t["test"] for t in found} != set(evidence["expectedNames"]))):
                 missing = True
             matched.extend(found)
         status = ("FAIL" if any(t["status"] == "FAIL" for t in matched) else
@@ -84,21 +96,35 @@ def aggregate(directory, catalog, since=None, execution_exit=None):
     baseline_tests = [t for t in tests if t["suite"].endswith(".AiEvaluationBaselineTests")]
     baseline_complete = (len(baseline) == 12 and {b["case"] for b in baseline} == CASES
                          and len(baseline_tests) == 12
+                         and {t["test"] for t in baseline_tests} == CASES
                          and all(t["status"] == "PASS" for t in baseline_tests))
     if len({b["case"] for b in baseline}) != len(baseline):
         invalid = True
     overall = ("FAIL" if invalid or failures or execution_exit not in (None, 0) else
                "NOT_RUN" if not tests or skipped or not baseline_complete else "PASS")
+    for record in baseline:
+        matching = [t for t in baseline_tests if t["test"] == record["case"]]
+        record["status"] = ("FAIL" if invalid or execution_exit not in (None, 0)
+                            or any(t["status"] == "FAIL" for t in matching) else
+                            "PASS" if len(matching) == 1 and matching[0]["status"] == "PASS" else "NOT_RUN")
     # Category evidence shares these references; strip values only AFTER matching invocations.
+    trusted_suites = {e["suite"] for c in catalog["categories"] for e in c["evidence"]}
+    trusted_suites.add("com.aiorderdeliveryagent.backend.ai.AiEvaluationBaselineTests")
+    trusted_methods = {(e["suite"], e["methodPrefix"] + "()")
+                       for c in catalog["categories"] for e in c["evidence"] if "methodPrefix" in e}
     for test in tests:
-        test["test"] = safe_test_label(test["test"])
-    return {"schemaVersion": 1, "status": overall,
+        if (test["suite"], test["test"]) not in trusted_methods:
+            test["test"] = "test-" + hashlib.sha256(test["test"].encode()).hexdigest()[:16]
+        if test["suite"] not in trusted_suites:
+            test["suite"] = "suite-" + hashlib.sha256(test["suite"].encode()).hexdigest()[:16]
+    return {"schemaVersion": 2, "status": overall,
             "generatedAt": datetime.now(timezone.utc).isoformat(),
             "evidenceMode": "fresh-execution" if since is not None else "imported-results-not-freshness-verified",
             "executionExitCode": execution_exit,
             "counts": {"total": len(tests), "passed": len(tests)-failures-skipped,
                        "failed": failures, "notRun": skipped},
-            "baselineStatus": "PASS" if baseline_complete and not failures and not invalid else "NOT_RUN",
+            "baselineStatus": ("FAIL" if invalid or failures or execution_exit not in (None, 0) else
+                               "PASS" if baseline_complete else "NOT_RUN"),
             "baseline": baseline, "categories": categories,
             "invalidReports": invalid, "tests": tests,
             "limitations": ["No real model/provider invocation", "No accuracy score",

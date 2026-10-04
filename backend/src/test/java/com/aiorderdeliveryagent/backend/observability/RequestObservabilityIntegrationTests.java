@@ -67,6 +67,17 @@ class RequestObservabilityIntegrationTests {
 	}
 
 	@Test
+	void unmatchedClientPathIsNotCopiedToRequestLogs() throws Exception {
+		mockMvc.perform(get("/api/v1/synthetic-secret-path").queryParam("token", "synthetic-secret-query"))
+				.andExpect(status().isUnauthorized());
+		assertThat(appender.list).isNotEmpty();
+		for (var event : appender.list) {
+			assertThat(event.getFormattedMessage()).doesNotContain("synthetic-secret");
+			assertThat(event.getKeyValuePairs().toString()).doesNotContain("synthetic-secret");
+		}
+	}
+
+	@Test
 	void requestWithoutIdReceivesGeneratedUuid() throws Exception {
 		String requestId = mockMvc.perform(get("/actuator/health/liveness"))
 				.andExpect(status().isOk())
@@ -82,6 +93,9 @@ class RequestObservabilityIntegrationTests {
 		mockMvc.perform(get("/actuator/health/liveness")
 				.header(RequestContext.REQUEST_ID_HEADER, "test-request-id"))
 				.andExpect(status().isOk())
+				.andExpect(header().string("X-Content-Type-Options", "nosniff"))
+				.andExpect(header().string("X-Frame-Options", "DENY"))
+				.andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
 				.andExpect(header().string(RequestContext.REQUEST_ID_HEADER, "test-request-id"));
 	}
 

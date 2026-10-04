@@ -2,6 +2,28 @@
 
 Last updated: 2026-10-04 (Asia/Kolkata)
 
+## Current continuation — Processes 46–50 (uncommitted)
+
+Started clean on main at locked 9c145103ffb9fcbac216ff71f639fc391c83ab54. Deterministic evidence
+reporting now has 23 automated categories and schema-v2 fail-closed duplicate/parameter-set/
+counter/baseline checks, with unknown report identifiers hashed. Local rendering performance has
+a bounded test-only measurement (25 warm-ups, 100 iterations, concurrency one). An offline
+16-driver cost inventory keeps all prices/usage/current-account cost unknown. FTA is still undefined:
+DECISION REQUIRED, not implemented. Security evaluation fixed raw request-path logging to use server
+route templates or UNMATCHED; authentication/ownership/provider/model architecture is unchanged.
+
+Fresh full evaluation: 306 tests/30 suites, zero failures/errors/skips; 23 automated PASS, three
+MANUAL_REVIEW, one live Bedrock BLOCKED. Standalone baseline 12 PASS; Python evaluation tests 27 PASS;
+bootJar PASS. V1–V7 unchanged and local history all successful; Redis PONG. Production npm audit zero
+advisories; full frontend lint dependency chain retains five high advisories (no dependency changes).
+No AWS access/authentication/writes/deployment or Bedrock invocation; no image/runtime cloud audit.
+Registration enumeration policy, local superuser versus production migration/runtime roles,
+request-byte/edge abuse policy, deployment/TLS/ingress budget and real-model prerequisites remain open.
+See docs/EVALUATION-46-50.md and evaluation/cost-drivers.json for measured scope and limits.
+No commit/push performed. Earlier continuation reports below are historical, not current revalidation.
+
+## Previous continuation — Processes 41–45
+
 Processes 41–45 continuation starts from clean checkpoint b6c1215449cd87ae8551b1ecc195397185288029.
 AWS CLI is present but STS reports missing credentials; no profile/account/region/model approval was
 discovered. No AWS resources or IAM policies were created and no deployment occurred. DEV/QA now have

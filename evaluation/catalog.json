@@ -8,7 +8,8 @@
           "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
           "methodPrefix": "allFiveToolsProduceDistinctUntrustedEvidence"
           ,"testNamePattern": "\\[[1-5]\\] scenario = (ORDERS|DETAILS|HISTORY|STATUS|LOCATION)",
-          "expectedCount": 5
+          "expectedCount": 5,
+          "expectedNames": ["[1] scenario = ORDERS", "[2] scenario = DETAILS", "[3] scenario = HISTORY", "[4] scenario = STATUS", "[5] scenario = LOCATION"]
         },
         {
           "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
@@ -112,7 +113,8 @@
           "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
           "methodPrefix": "hostileTextCannotPromoteItselfToSystemInstructionsOrExecuteAnArbitraryTool"
           ,"testNamePattern": "\\[[1-6]\\] source = \"(USER|HISTORY|EXTERNAL_RESPONSE|ORDER_STATUS|TRACKING_DESCRIPTION|TOOL_RESULT)\"",
-          "expectedCount": 6
+          "expectedCount": 6,
+          "expectedNames": ["[1] source = \"USER\"", "[2] source = \"HISTORY\"", "[3] source = \"EXTERNAL_RESPONSE\"", "[4] source = \"ORDER_STATUS\"", "[5] source = \"TRACKING_DESCRIPTION\"", "[6] source = \"TOOL_RESULT\""]
         },
         {
           "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
@@ -211,6 +213,66 @@
       ],
       "scope": "deterministic/backend-contract; not real-model quality"
     }
+    ,{
+  "id": "user_authorization",
+  "scope": "deterministic/backend-contract; not real-model quality",
+  "evidence": [
+    {
+      "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+      "methodPrefix": "sameTenantOtherUserCannotReadOrSend"
+    }
+  ]
+},
+{
+  "id": "provider_timeout",
+  "scope": "deterministic/backend-contract; not real-model quality",
+  "evidence": [
+    {
+      "suite": "com.aiorderdeliveryagent.backend.integration.transport.ProviderExecutionBudgetTests",
+      "methodPrefix": "deadlineReturnsAndClosesMaterialEvenWhenAdapterIgnoresInterrupt"
+    }
+  ]
+},
+{
+  "id": "tool_timeout",
+  "scope": "deterministic/backend-contract; not real-model quality",
+  "evidence": [
+    {
+      "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+      "methodPrefix": "toolTimeoutProvidesOnlySafeStructuredFailureToModel"
+    }
+  ]
+},
+{
+  "id": "stale_history",
+  "scope": "deterministic/backend-contract; not real-model quality",
+  "evidence": [
+    {
+      "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+      "methodPrefix": "storedSupportedFieldsDoNotBecomeFreshRetrievalOnNextPlainTurn"
+    }
+  ]
+},
+{
+  "id": "model_unavailable",
+  "scope": "deterministic/backend-contract; not real-model quality",
+  "evidence": [
+    {
+      "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+      "methodPrefix": "missingProductionModelFailsClosed"
+    }
+  ]
+},
+{
+  "id": "provider_unavailable",
+  "scope": "deterministic/backend-contract; not real-model quality",
+  "evidence": [
+    {
+      "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+      "methodPrefix": "providerAndOwnershipAndUnexpectedFailuresDoNotLeakToModel"
+    }
+  ]
+}
   ],
   "manualReview": [
     "real-model-intent-and-semantic-quality",

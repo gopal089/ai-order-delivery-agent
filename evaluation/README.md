@@ -1,6 +1,27 @@
 # Deterministic AI evaluation baseline
 
-## Processes 44–45: safe evidence reporting
+## Processes 46–50: current local evaluation
+
+Fresh full run: 306 tests in 30 suites, zero failures/errors/skips, 23 automated categories PASS,
+three MANUAL_REVIEW and one BLOCKED. Standalone baseline: twelve PASS. Python reporter/inventory:
+27 tests PASS. bootJar PASS. Only deterministic/local fixtures; no live model or external provider.
+
+Schema version 2 requires distinct matching JUnit identities, exact parameter invocation sets,
+valid suite roots/counters and twelve baseline test/emission identities. Unknown suite/method
+names and parameter argument labels are hashed; system-out, prompts, security-context values,
+exception messages and credentials are not exported. Reports are local evidence, not attestations.
+Missing/skipped/stale/insufficient or contradictory evidence cannot establish passing categories.
+
+LocalRenderingPerformanceTests is a bounded single-threaded production-renderer measurement,
+not end-to-end latency/throughput: 25 warm-ups and 100 measured invocations with assertions outside
+the measured segment. Run from backend: `./gradlew test --tests '*LocalRenderingPerformanceTests' --rerun-tasks --console=plain`.
+Read docs/EVALUATION-46-50.md for exact recorded environment/values and source-security findings.
+
+cost-drivers.json is an offline sixteen-driver inventory with null prices/usage/bill/estimate;
+NOT VERIFIED is not zero. No AWS/model charges were introduced by this batch, but account costs
+were not checked. FTA has no project definition and remains DECISION REQUIRED, not implemented.
+
+## Processes 44–45: historical safe evidence reporting
 
 Fresh execution on 2026-10-04: 304 backend tests passed with zero failures/skips, including all 12
 deterministic cases; all 17 automated categories passed. A separate run with AWS and database
