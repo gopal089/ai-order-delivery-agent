@@ -1,0 +1,159 @@
+.page {
+  min-height: 100vh;
+}
+
+.header,
+.main {
+  width: min(100% - 2rem, 76rem);
+  margin-inline: auto;
+}
+
+.header {
+  min-height: 5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 750;
+}
+
+.brand span {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  background: var(--signal);
+  font-family: var(--font-geist-mono);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.nav a,
+.nav button {
+  padding-block: 0.5rem;
+}
+
+.nav button {
+  padding-inline: 0.875rem;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.nav .active {
+  color: var(--ink);
+  box-shadow: inset 0 -2px var(--signal-dark);
+}
+
+.main {
+  padding-block: 4rem 6rem;
+}
+
+.intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3rem;
+  align-items: end;
+  padding-bottom: 3rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+.eyebrow {
+  color: var(--signal-dark);
+  font-family: var(--font-geist-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.intro h1 {
+  margin-block: 1rem;
+  font-size: clamp(2.75rem, 6vw, 5rem);
+  font-weight: 650;
+  letter-spacing: -0.06em;
+  line-height: 0.98;
+}
+
+.description {
+  max-width: 40rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.identity {
+  min-width: 16rem;
+  padding: 1rem;
+  border: 1px solid var(--line-strong);
+  display: grid;
+  gap: 0.4rem;
+  background: var(--panel);
+}
+
+.identity span,
+.identity small {
+  color: var(--muted);
+  font-family: var(--font-geist-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.identity span::before {
+  content: "";
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.identity strong {
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 44rem) {
+  .header {
+    align-items: flex-start;
+    gap: 1.5rem;
+    padding-block: 1.25rem;
+  }
+
+  .nav {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  .intro {
+    grid-template-columns: 1fr;
+  }
+
+  .identity {
+    min-width: 0;
+  }
+}

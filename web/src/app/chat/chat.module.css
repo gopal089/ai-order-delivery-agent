@@ -1,0 +1,10 @@
+.panel { background: var(--surface, #fff); padding: 1.5rem; border: 1px solid #ccc; border-radius: 12px; }
+.panel form { display: grid; gap: .8rem; max-width: 720px; }
+.panel select, .panel textarea, .panel button { font: inherit; padding: .8rem; border: 1px solid #777; border-radius: 6px; }
+.panel textarea { min-height: 110px; resize: vertical; }
+.panel button { cursor: pointer; }
+.panel button:disabled { opacity: .6; cursor: wait; }
+.turn { border-top: 1px solid #ccc; margin-top: 1.5rem; padding-top: 1rem; overflow-wrap: anywhere; white-space: pre-wrap; }
+.turn h2 { font-size: 1rem; margin-top: 1rem; }
+.turn dt { font-weight: 600; margin-top: .8rem; }
+.turn dd { margin-left: 0; }

@@ -1,0 +1,115 @@
+.state,
+.empty,
+.grid,
+.compactGrid {
+  margin-top: 2rem;
+}
+
+.state,
+.empty {
+  min-height: 13rem;
+  padding: 2rem;
+  border: 1px solid var(--line-strong);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--panel);
+}
+
+.state {
+  align-items: flex-start;
+  gap: 1rem;
+  color: var(--muted);
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+}
+
+.state button {
+  min-height: 2.5rem;
+  padding-inline: 1rem;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+
+.empty span {
+  color: var(--signal-dark);
+  font-family: var(--font-geist-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.empty h2 {
+  margin-block: 1rem 0.75rem;
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  letter-spacing: -0.045em;
+}
+
+.empty p {
+  max-width: 40rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.grid,
+.compactGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+
+.card {
+  padding: 1.25rem;
+  border: 1px solid var(--line-strong);
+  background: var(--panel);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--signal-dark);
+  font-family: var(--font-geist-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.card h2 {
+  margin-block: 1.25rem 0.5rem;
+  font-size: 1.25rem;
+}
+
+.card > p {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.card dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+}
+
+.card dt {
+  color: var(--muted);
+  font-family: var(--font-geist-mono);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+}
+
+.card dd {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}

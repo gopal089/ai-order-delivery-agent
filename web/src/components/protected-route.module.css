@@ -1,0 +1,19 @@
+.loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.loading span {
+  width: 0.625rem;
+  height: 0.625rem;
+  background: var(--signal);
+  border: 1px solid var(--ink);
+}

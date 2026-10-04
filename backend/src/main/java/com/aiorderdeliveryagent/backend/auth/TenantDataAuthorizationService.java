@@ -32,6 +32,16 @@ public class TenantDataAuthorizationService {
 	}
 
 	@Transactional(readOnly = true)
+	public void requireShipmentAccess(long shipmentId) {
+		requireOwner(resourceRepository.findShipmentOwnership(shipmentId));
+	}
+
+	@Transactional(readOnly = true)
+	public void requireTrackingEventAccess(long eventId) {
+		requireOwner(resourceRepository.findTrackingEventOwnership(eventId));
+	}
+
+	@Transactional(readOnly = true)
 	public void requireConversationAccess(long conversationId) {
 		requireOwner(resourceRepository.findConversationOwnership(conversationId));
 	}

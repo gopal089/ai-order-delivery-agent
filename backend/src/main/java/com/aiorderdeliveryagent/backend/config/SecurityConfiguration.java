@@ -2,14 +2,18 @@ package com.aiorderdeliveryagent.backend.config;
 
 import java.time.Clock;
 import java.util.Base64;
+import java.util.List;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import com.aiorderdeliveryagent.backend.auth.AccessTokenAuthenticationConverter;
 import com.aiorderdeliveryagent.backend.auth.AccessTokenClaimsValidator;
+import com.aiorderdeliveryagent.backend.auth.AuthenticationRateLimitProperties;
 import com.aiorderdeliveryagent.backend.auth.AuthTokenProperties;
 import com.aiorderdeliveryagent.backend.auth.UserAccountRepository;
+import com.aiorderdeliveryagent.backend.observability.AuthenticatedLoggingContextFilter;
+import com.aiorderdeliveryagent.backend.observability.RequestContext;
 
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -31,10 +35,18 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.web.access.BearerTokenAccessDeniedHandler;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenAuthenticationEntryPoint;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
-@EnableConfigurationProperties(AuthTokenProperties.class)
+@EnableConfigurationProperties({
+		AuthTokenProperties.class,
+		AuthenticationRateLimitProperties.class,
+		CorsProperties.class
+})
 public class SecurityConfiguration {
 
 	@Bean
@@ -42,19 +54,45 @@ public class SecurityConfiguration {
 			HttpSecurity http,
 			AccessTokenAuthenticationConverter accessTokenAuthenticationConverter) throws Exception {
 		http
+				.cors(cors -> {})
 				.csrf(csrf -> csrf.disable())
 				.httpBasic(httpBasic -> httpBasic.disable())
 				.formLogin(formLogin -> formLogin.disable())
 				.logout(logout -> logout.disable())
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(authorize -> authorize
+						.requestMatchers(
+								"/actuator/health/liveness",
+								"/actuator/health/readiness").permitAll()
 						.requestMatchers("/api/v1/auth/**").permitAll()
 						.anyRequest().authenticated())
 				.oauth2ResourceServer(resourceServer -> resourceServer
 						.jwt(jwt -> jwt.jwtAuthenticationConverter(accessTokenAuthenticationConverter))
 						.authenticationEntryPoint(new BearerTokenAuthenticationEntryPoint())
-						.accessDeniedHandler(new BearerTokenAccessDeniedHandler()));
+						.accessDeniedHandler(new BearerTokenAccessDeniedHandler()))
+				.addFilterAfter(
+						new AuthenticatedLoggingContextFilter(),
+						BearerTokenAuthenticationFilter.class);
 		return http.build();
+	}
+
+	@Bean
+	CorsConfigurationSource corsConfigurationSource(CorsProperties properties) {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(properties.allowedOrigins());
+		configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of(
+				"Authorization",
+				"Content-Type",
+				"Accept",
+				RequestContext.REQUEST_ID_HEADER));
+		configuration.setExposedHeaders(List.of(RequestContext.REQUEST_ID_HEADER));
+		configuration.setAllowCredentials(false);
+		configuration.setMaxAge(3600L);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/api/**", configuration);
+		return source;
 	}
 
 	@Bean

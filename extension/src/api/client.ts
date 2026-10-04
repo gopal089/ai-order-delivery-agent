@@ -1,3 +1,5 @@
+import { validateBackendBaseUrl } from '../shared/settings.ts'
+
 export type ApiClientConfig = {
   baseUrl: string
   getAccessToken?: () => Promise<string | null>
@@ -24,7 +26,8 @@ export class ApiClient {
   private readonly getAccessToken?: () => Promise<string | null>
 
   constructor(config: ApiClientConfig) {
-    this.baseUrl = config.baseUrl.replace(/\/+$/, '')
+    if (validateBackendBaseUrl(config.baseUrl)) throw new Error('Backend address is not approved.')
+    this.baseUrl = new URL(config.baseUrl.trim()).origin
     this.getAccessToken = config.getAccessToken
   }
 
@@ -32,7 +35,9 @@ export class ApiClient {
     path: `/${string}`,
     init: RequestInit = {},
   ): Promise<TResponse> {
-    const accessToken = await this.getAccessToken?.()
+    if (!/^\/api\/v1\/(auth\/(login|refresh|logout)|integrations|conversations(\/[1-9]\d*\/messages)?)$/.test(path))
+      throw new Error('Unsupported backend route.')
+    const accessToken = path.startsWith('/api/v1/auth/') ? null : await this.getAccessToken?.()
     const headers = new Headers(init.headers)
 
     headers.set('Accept', 'application/json')
@@ -49,6 +54,8 @@ export class ApiClient {
       ...init,
       headers,
       credentials: 'omit',
+      redirect: 'error',
+      cache: 'no-store',
     })
 
     if (!response.ok) {

@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.env*
+*.log
+*.tsbuildinfo
+**/*.pem
+**/*.key
+**/*.p12
+**/*.jks
+tests

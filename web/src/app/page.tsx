@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "./page.module.css";
 
 const capabilities = [
@@ -35,22 +36,23 @@ export default function Home() {
       </a>
 
       <header className={styles.header}>
-        <a
+        <Link
           className={styles.brand}
-          href="#top"
+          href="/"
           aria-label="AI Order & Delivery Agent home"
         >
           <span className={styles.brandMark} aria-hidden="true">
             OA
           </span>
           <span>Order Agent</span>
-        </a>
+        </Link>
         <nav className={styles.nav} aria-label="Primary navigation">
           <a href="#capabilities">Capabilities</a>
           <a href="#how-it-works">How it works</a>
-          <a className={styles.navCta} href="#early-access">
-            Request access
-          </a>
+          <Link href="/login">Login</Link>
+          <Link className={styles.navCta} href="/register">
+            Get started
+          </Link>
         </nav>
       </header>
 
@@ -177,12 +179,12 @@ export default function Home() {
           <p className={styles.sectionLabel}>Early access</p>
           <h2>Bring clarity to every delivery conversation.</h2>
           <p>
-            Registration and secure integration setup are coming in the next
-            implementation phases.
+            Create an account, sign in securely, and verify your tenant-scoped
+            integration connection.
           </p>
-          <span className={styles.earlyAccessStatus}>
-            Access workflow coming soon
-          </span>
+          <Link className={styles.earlyAccessStatus} href="/register">
+            Create your account →
+          </Link>
         </section>
       </main>
 

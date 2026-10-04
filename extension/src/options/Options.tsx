@@ -97,7 +97,7 @@ export function Options() {
               name="backendBaseUrl"
               type="url"
               inputMode="url"
-              placeholder="https://your-backend.example"
+              placeholder="http://127.0.0.1:8080"
               value={backendBaseUrl}
               onChange={(event) => {
                 setBackendBaseUrl(event.target.value)
@@ -108,8 +108,7 @@ export function Options() {
               autoComplete="url"
             />
             <p id="backend-help">
-              HTTPS is required except for localhost development. Do not include
-              credentials, query parameters, or fragments.
+              This local build permits only localhost:8080 or 127.0.0.1:8080. Production requires an approved backend build. Do not include credentials, paths, queries or fragments.
             </p>
           </div>
 

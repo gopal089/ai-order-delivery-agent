@@ -1,10 +1,43 @@
 # AI Order & Delivery Agent — Project Handoff
 
-Last updated: 2026-10-02 (Asia/Kolkata)
+Last updated: 2026-10-04 (Asia/Kolkata)
 
 This document is the durable handoff for continuing the project from another ChatGPT/Codex account. It records the repository state, implemented functionality, verified behavior, security constraints, known issues, and the intended roadmap. Treat the repository as authoritative when it differs from this document, and update this document when a later implementation changes the recorded state.
 
+Latest verification (2026-10-04): `./gradlew test --rerun-tasks --console=plain` passed 281 tests with zero failures/errors/skips; `bootJar` passed. The 263-test baseline was independently rerun. A backend response boundary now withholds arbitrary generated prose from chat output and new assistant persistence, and masks legacy assistant/OTHER public history. Backend-only typed tool provenance and mandatory AI_RESPONSE_GROUNDING audit distinguish retrieval from answer support. All model answers remain MODEL_GENERATED_UNVERIFIED even after retrieval; stronger categories are reserved, not implemented claim classifiers. The exact unsupported Chennai claim with no tool is tested at unit and authenticated API/database layers and is never EXTERNALLY_SUPPORTED or shown/stored as an assistant answer. Normal packaged startup returns safe 503 without a model; a separate temporary test fixture exercised runtime chat/tool/provenance/persistence/isolation/request IDs. Fixtures/processes were cleaned. No real model/provider, AWS SDK, credential store, migration, cache or ingestion was added. BEDROCK CONFIGURATION BLOCKED: approved region/model/profile/authentication/IAM access absent; no real invocation. SDK/API readiness was researched using official AWS sources, not implemented. Complete factual grounding and prompt-injection protection remain unverified. See `docs/RESPONSE-GROUNDING-AND-BEDROCK-READINESS.md`, `docs/CHAT-AND-AI-SECURITY.md` and `docs/PROVIDER-EXECUTION-VERIFICATION.md`. Older frontend descriptions remain historical, not reverified in this backend batch.
+
+Latest continuation (Processes 31–35): the 281-test baseline was rerun successfully; the first full
+post-change run passed 304 tests, zero failures/errors/skips, and bootJar passed. ControlledFact now
+projects existing typed order/shipment/tracking/location fields. The backend renders those values with
+source times and can classify the controlled factual portion EXTERNALLY_SUPPORTED; model prose remains
+withheld. Chennai/tomorrow claims cannot replace provider Bangalore or invent an ETA. Versioned JSON
+assistant envelopes reuse messages.content with no migration; stored snapshots remain contextual, not
+current retrieval. Twelve deterministic evaluation cases exist under the existing Gradle/JUnit harness.
+Safe actual environment/.env/CLI/file-presence discovery found no AWS region, credentials configuration
+or approved model/profile, so Bedrock remains BLOCKED, NOT IMPLEMENTED/NOT VERIFIED. See
+CONTROLLED-FACTUAL-RENDERING.md and evaluation/README.md. This supersedes the preceding withhold-all
+status; it is not a guarantee of provider truth, freshness or complete model grounding.
+
 ## 1. Project purpose and primary requirements
+
+Latest continuation (Processes 36–40, 2026-10-04): backend regression rerun passed 304 tests,
+zero failures/errors/skips; bootJar passed. Authenticated web `/chat` and local-only MV3 popup chat
+now call the existing backend conversation contract. Both render controlled facts as escaped text,
+not arbitrary model prose. Web and extension each pass 10 focused client tests plus typecheck/lint/build.
+Web includes a tested pending-refresh/logout race guard in the existing in-memory session mechanism.
+Backend and standalone Next multi-stage images build and run non-root; PostgreSQL/Redis readiness,
+Flyway V1–V7, registration/login/rotation/revocation, ownership denial, missing-config failure and
+SIGTERM graceful shutdown were verified. Production browser login/dashboard/integration/chat-503,
+logout, unauthenticated redirect and reload-cleared session were observed. Disposable runtime
+containers/users/tenant data/Redis keys were cleaned; existing infrastructure preserved.
+OpenAPI 3.0.3 routing inventory validates and matches 20 existing operations; API Gateway remains
+DESIGN ONLY, not deployed. Production backend/extension hostname, ingress/WAF choice and synchronous
+Gateway timeout alignment require decisions. Bedrock remains blocked; no real provider/model calls
+or SDK were added. Native Chrome loaded-extension execution remains NOT VERIFIED (port 8080 already
+has an existing Java process, which was not stopped). Five high npm-audit findings in web lint/build
+tooling remain unresolved; no forced breaking upgrade. See WEB-EXTENSION-AND-CONTAINERS.md and
+API-GATEWAY-DESIGN.md. This continuation supersedes historical static-only web/extension descriptions
+below. No backend application code or existing migration changed in this batch; no commit/push.
 
 The AI Order & Delivery Agent is intended to become a production-oriented, multi-tenant web platform with a Chrome extension. A customer should eventually be able to register, authenticate, configure credentials for their own external order/tracking provider, ask natural-language questions, and receive factual order and delivery information retrieved through controlled backend tools.
 
@@ -21,7 +54,7 @@ Core product requirements:
 - Order, tracking, status, and package-location claims must be grounded in external provider data.
 - Current and historical conversation context must never override newer authoritative provider data.
 - PostgreSQL is the authoritative persistent application store; Redis is only for justified temporary/cache use.
-- AWS, Bedrock, API Gateway, ECS/Fargate, observability, evaluation, and CI/CD are planned but not implemented.
+- AWS, Bedrock, API Gateway, ECS/Fargate, external telemetry backends, evaluation, and CI/CD are planned but not implemented. A local security-observability and audit foundation is implemented.
 
 ## 2. Non-negotiable engineering and security rules
 
@@ -74,7 +107,7 @@ The host JVM observed during diagnostics is Java 25.0.1, while the backend build
 
 ### Planned but not implemented
 
-- Business-domain services, CRUD policies, and protected domain endpoints.
+- Domain ingestion/mutations and remaining business services; protected order/shipment reads now exist.
 - LangChain4j.
 - Amazon Bedrock and real external provider adapters.
 - Amazon API Gateway.
@@ -83,7 +116,7 @@ The host JVM observed during diagnostics is Java 25.0.1, while the backend build
 - Infrastructure as code.
 - GitHub Actions CI/CD.
 - OpenAPI generation.
-- AI evaluation infrastructure.
+- Advanced/real-model AI evaluation infrastructure; a minimal deterministic baseline now exists.
 
 ## 4. Current architecture
 
@@ -281,11 +314,17 @@ ai-order-delivery-agent/
 | Implement authenticated context and authorization boundary | Complete | Bearer JWT validation, server-resolved tenant/user/session principal, active-session enforcement, reusable ownership guards, tests, and documentation. |
 | Implement tenant/user data-isolation boundary | Complete | Authoritative ownership lookup and reusable integration/order/conversation/message/credential guards with cross-tenant and same-tenant cross-user tests. |
 | Create external order provider abstraction | Complete | Provider-neutral five-operation Java interface, trusted call context, typed request/result models, safe exception hierarchy, contract tests, and no real adapter or credential handling. |
+| Implement secure integration configuration | Complete | Authenticated tenant/user-scoped integration CRUD, base-URL validation, credential-store abstraction, safe audit events, V6, tests, and no real secret store or HTTP transport. |
+| Implement authentication rate limiting | Complete | Atomic Redis fixed-window controls for login identity/IP and refresh session/IP, generic 429/503 responses, real-Redis tests, and no raw credentials or tokens in keys. |
+| Implement security observability and audit foundation | Complete | Validated request IDs, structured JSON logs with authenticated context, centralized redaction, transactional security/integration audits, and public liveness/readiness probes. |
+| Verify provider execution and secure HTTP transport | Backend boundary verified; real providers blocked | Public-address DNS validation/pinning, no redirects/proxies/retries, TLS verification, fixed timeouts, 1 MiB response cap, synthetic execution tests, no credential persistence or real adapter. |
+| Credential lifecycle, execution budget, future tool boundary | Backend/test boundary verified; production/AI blocked | Scope-checked lifecycle test fixture and fail-closed rotate contract; 20-second/five-attempt provider budget; deterministic test provider; integration/session-bound tools with existing internal-order ownership checks and explicit untrusted output. No real secret store, AWS or AI framework. |
+| Order/shipment/tracking domain boundary | Backend services verified; real providers/API/ingestion deferred | Scoped persisted reads and provider reference resolution; shipment/event ownership guards; explicit provider/unavailable provenance; no cache or conversation fallback; no domain HTTP controllers or migration. |
 | Verify FSEvents warning | Complete | Non-fatal Gradle/macOS watcher warning; no application/runtime correctness impact. |
 
 ## 7. Database schema
 
-All requested application tables are in the PostgreSQL `public` schema. Every table has a non-null `tenant_id`. Internal primary keys use `bigint GENERATED ALWAYS AS IDENTITY`; tenant IDs use UUIDs. Timestamps use `timestamptz`.
+All requested application tables are in the PostgreSQL `public` schema. Tenant-owned domain tables have a non-null `tenant_id`. `audit_events.tenant_id` is nullable only for truthful unauthenticated events that have no known tenant; an audit actor may never exist without a tenant. Internal primary keys use `bigint GENERATED ALWAYS AS IDENTITY`; tenant IDs use UUIDs. Timestamps use `timestamptz`.
 
 ### `users`
 
@@ -311,10 +350,10 @@ All requested application tables are in the PostgreSQL `public` schema. Every ta
 
 ### `integrations`
 
-- `id`, `tenant_id`, `user_id`, `provider_key`, `display_name`, `settings`, `is_enabled`, timestamps.
+- `id`, `tenant_id`, `user_id`, `provider_key`, `display_name`, nullable normalized `base_url`, nullable opaque `credential_reference`, nullable non-secret `credential_type`, `settings`, `is_enabled`, timestamps.
 - Composite user ownership FK.
 - `settings` must be a JSON object and is explicitly for non-secret configuration only.
-- No integration credential storage or provider adapter is implemented.
+- Raw integration credentials remain outside PostgreSQL; no credential-store implementation or provider adapter exists.
 
 ### `conversations`
 
@@ -357,16 +396,17 @@ All requested application tables are in the PostgreSQL `public` schema. Every ta
 
 ### `audit_events`
 
-- `id`, `tenant_id`, nullable `actor_user_id` for system events, event/resource/outcome fields, redacted metadata, occurrence time.
+- `id`, nullable `tenant_id`, nullable `actor_user_id` for unauthenticated/system events, event/resource/outcome fields, redacted metadata, occurrence time.
 - Tenant-aware actor FK where an actor exists.
+- V7 permits an absent tenant for events such as unknown-email login failures and enforces that an actor can exist only when a tenant exists.
 - Tenant/time and actor/time indexes.
-- Audit event production is not implemented.
+- Centralized audit production is implemented for login success/failure, refresh success/failure/reuse, logout, authentication rate limiting, and integration lifecycle events.
 
 Database-level RLS is **not** enabled. Structural ownership uses `tenant_id`, `user_id`, composite unique keys, and composite foreign keys. Spring Security now establishes a server-resolved tenant/user/session context, and reusable ownership guards are available; individual business-domain services are not implemented yet.
 
 ## 8. Flyway migrations
 
-Already-applied migrations are immutable. Never edit V1–V5; add V6 or later.
+Already-applied migrations are immutable. Never edit V1–V7; add V8 or later.
 
 | Migration | Purpose | Verified state |
 |---|---|---|
@@ -375,6 +415,8 @@ Already-applied migrations are immutable. Never edit V1–V5; add V6 or later.
 | `V3__index_refresh_token_ownership.sql` | Adds a full `(tenant_id, user_id)` index for refresh-token FK/ownership operations, complementing the active-token partial index. | Applied successfully. |
 | `V4__add_user_registration_credentials.sql` | Adds `users.password_hash`, its Argon2-format check constraint, explanatory comment, and race-safe global normalized-email unique index. | Applied successfully. |
 | `V5__add_refresh_token_sessions.sql` | Adds the non-null refresh-token `session_id` and its tenant/user/session index. | Applied successfully. |
+| `V6__secure_external_integration_configuration.sql` | Adds normalized base-URL storage plus opaque credential-reference/type metadata and integrity/security constraints. | Applied successfully. |
+| `V7__allow_unauthenticated_audit_events.sql` | Allows truthful unauthenticated audit events without a fabricated tenant while preventing actor-without-tenant rows. | Applied successfully. |
 
 Common Flyway configuration in `application.properties`:
 
@@ -384,7 +426,7 @@ Common Flyway configuration in `application.properties`:
 - Baseline-on-migrate disabled.
 - Flyway `clean` disabled.
 
-Latest verification validated all five migrations and reported the schema up to date.
+Latest verification validated all seven migrations and reported the schema up to date.
 
 ## 9. PostgreSQL configuration
 
@@ -505,7 +547,7 @@ All profiles use the same JPA safety settings and external database configuratio
 
 ## 13. Registration and authentication implementation
 
-Registration, login, access-token issuance, refresh-token rotation/reuse detection, logout, bearer-token request authentication, and reusable tenant/user ownership guards are implemented. OAuth, account recovery, email verification, rate limiting, and business-domain authorization are not implemented.
+Registration, login, access-token issuance, refresh-token rotation/reuse detection, logout, bearer-token request authentication, authentication rate limiting, and reusable tenant/user ownership guards are implemented. OAuth, account recovery, email verification, and business-domain authorization outside integration configuration are not implemented.
 
 Registration flow:
 
@@ -611,7 +653,7 @@ Accepts the current opaque refresh token, revokes it, and returns a new access/r
 
 Accepts a refresh token, revokes the full session family, and returns `204 No Content`. Logout is idempotent and does not disclose token state.
 
-No protected business-domain endpoint is implemented yet. Bearer-token request authentication and the reusable authorization boundary are described in `docs/AUTHORIZATION.md`.
+Integration metadata endpoints are protected. No order/tracking endpoint exists; the new execution service is a backend-only boundary. Bearer-token request authentication and the reusable authorization boundary are described in `docs/AUTHORIZATION.md`.
 
 ## 15. Security decisions already implemented
 
@@ -634,14 +676,19 @@ No protected business-domain endpoint is implemented yet. Bearer-token request a
 - Integration settings are explicitly non-secret.
 - Tool execution and audit metadata are documented as redacted-only.
 - External order/shipment cache columns require explicit expiration metadata.
+- Validated or generated request IDs are returned in `X-Request-ID`, included in API errors where practical, and placed in MDC for structured JSON logs.
+- Authenticated user, tenant, and session IDs are added to structured request logs only from the trusted Spring Security principal.
+- Central redaction protects sensitive field names before structured security and audit metadata is emitted.
+- Security and integration audit writes share their owning transaction and fail closed if persistence fails.
+- Only minimal liveness and readiness probes are public; readiness includes PostgreSQL and Redis.
 
-Not yet implemented: business-domain authorization, secure-header policy review, CORS policy, rate limiting, brute-force controls, RLS, encrypted integration credentials, audit production, secret scanning CI, dependency/container scanning, TLS termination, and cloud IAM. CSRF is disabled for the stateless JSON token API because it does not use ambient cookie authentication.
+Not yet implemented: business-domain authorization outside integration configuration, secure-header policy review, advanced brute-force/anomaly detection, RLS, encrypted integration credentials, an external/immutable audit sink and retention policy, secret scanning CI, dependency/container scanning, TLS termination, distributed tracing/metrics export, and cloud IAM. CSRF is disabled for the stateless JSON token API because it does not use ambient cookie authentication.
 
 ## 16. Tenant-isolation design
 
 The current registration model creates a unique `tenant_id` UUID for each registered user. The schema is capable of representing multiple users per tenant later, but no tenant-management API exists.
 
-Every application table has a non-null tenant ID. Relationships that cross tables use composite ownership keys, for example:
+Every tenant-owned domain table has a non-null tenant ID; `audit_events` is the sole exception for unauthenticated events with no knowable tenant. Relationships that cross tenant-owned tables use composite ownership keys, for example:
 
 ```text
 (tenant_id, user_id) -> users(tenant_id, id)
@@ -712,7 +759,12 @@ The source and build output contain no embedded credentials. Because no durable 
 
 ## 19. Evaluation infrastructure status
 
-`evaluation/` currently contains only `.gitkeep`. No evaluation runner, datasets, metrics, prompt regression tests, agent tool evaluations, cost evaluation, performance evaluation, or prompt-injection suite exists.
+`evaluation/` now contains README.md documenting AiEvaluationBaselineTests, an executable 12-case
+catalog using the existing Gradle/JUnit runner and production orchestrator/renderer with typed mocks.
+Exact pass/fail reasons, measured case latency, declared test fixture identity and null unavailable
+usage/cost metadata are captured in ignored JUnit reports. This is not real-model evaluation or a
+production authorization proof from mocks; full integration/security tests provide that separate evidence.
+Real-model semantics/provider truth/freshness/privacy/cost require manual review. No numeric accuracy score.
 
 The specification requires future evaluation of correctness, groundedness, tool selection/arguments, tool success, context, safety, prompt-injection resistance, unauthorized access resistance, latency, token usage, and cost.
 
@@ -802,7 +854,7 @@ export DATABASE_PASSWORD="$POSTGRES_PASSWORD"
 ./gradlew test --rerun-tasks --console=plain
 ```
 
-Latest verified result on 2026-10-02 after the external-provider abstraction:
+Latest verified result on 2026-10-04 after processes 21–25:
 
 - `BackendApplicationTests`: 1 test, 0 failures.
 - `PostgreSqlConnectionTests`: 3 tests, 0 failures.
@@ -811,14 +863,34 @@ Latest verified result on 2026-10-02 after the external-provider abstraction:
 - `AuthorizationIntegrationTests`: 16 tests, 0 failures.
 - `TenantDataIsolationIntegrationTests`: 12 tests, 0 failures.
 - `ExternalOrderProviderContractTests`: 7 tests, 0 failures.
-- Total: 58 tests, 58 passed, 0 failed, 0 skipped.
-- Flyway validated five migrations.
+- `ExternalBaseUrlValidatorTests`: 13 tests, 0 failures.
+- `ExternalIntegrationIntegrationTests`: 10 tests, 0 failures.
+- `CorsIntegrationTests`: 3 tests, 0 failures.
+- `AuthenticationRateLimitingIntegrationTests`: 11 tests, 0 failures.
+- `AuthenticationRateLimitRedisFailureIntegrationTests`: 2 tests, 0 failures.
+- `AuditEventServiceTests`: 1 test, 0 failures.
+- `HealthEndpointIntegrationTests`: 4 tests, 0 failures.
+- `HealthEndpointRedisFailureIntegrationTests`: 2 tests, 0 failures.
+- `RequestObservabilityIntegrationTests`: 7 tests, 0 failures.
+- `SecurityAuditIntegrationTests`: 7 tests, 0 failures.
+- `SensitiveDataRedactorTests`: 2 tests, 0 failures.
+- `SecureHttpTransportTests`: 18 tests, 0 failures.
+- `ExternalOrderExecutionIntegrationTests`: 60 tests, 0 failures (including tool/domain/API/conversation and authenticated scripted-agent boundaries).
+- `AgentOrchestrationTests`: 30 tests, 0 failures.
+- `ConversationApiIntegrationTests`: 18 tests, 0 failures.
+- `AiExecutionGuardTests`: 2 tests, 0 failures.
+- `CredentialMaterialTests`: 2 tests, 0 failures.
+- `CredentialLifecycleContractTests`: 6 tests, 0 failures.
+- `ProviderExecutionBudgetTests`: 7 tests, 0 failures.
+- Total: 263 tests, 263 passed, 0 failed/errors, 0 skipped.
+- Flyway validated seven migrations.
 - PostgreSQL JDBC driver, database connection, and `SELECT 1` were verified.
 - Registration cases verified: success, invalid email, missing email, missing password, weak password, case-insensitive duplicate, and stored Argon2id hash rather than plaintext.
 - Authentication cases verified: login success, unknown email, incorrect password, invalid/missing input, inactive user, access-token issuance, hashed refresh-token issuance, rotation, expiration, revocation, reuse detection, and logout.
 - Authorization cases verified: valid bearer authentication, missing/malformed/expired/wrong-signature/wrong-issuer/missing-claim tokens, trusted context, server-side tenant derivation, client override resistance, user/session mismatch rejection, cross-tenant denial, and revoked-session rejection.
 - Isolation cases verified: own-resource access, cross-tenant and same-tenant/cross-user denial, integration/order/conversation/message/credential boundaries, modification/delete authorization, and client identity override attempts.
 - Provider-contract cases verified: exact operation surface, trusted identity context, typed/validated requests, immutable results, safe failure hierarchy, and absence of credential-bearing fields.
+- Observability cases verified: generated/accepted/rejected request IDs, response and error correlation, MDC cleanup, trusted authenticated log context, centralized redaction, liveness/readiness behavior, database/Redis readiness, security audit identity/outcomes, refresh reuse, logout, rate limiting, and audit failure propagation.
 
 No frontend or extension automated tests exist.
 
@@ -848,7 +920,7 @@ Tests may print an OpenJDK warning that class sharing is limited because the boo
 
 ## 24. Known unresolved issues and transient local state
 
-- Registration commit `6a0721b` and Step 2 authentication commit `0a73b4a` are pushed on `main`. Step 3 authorization and tenant-isolation changes are currently uncommitted until the user explicitly requests another checkpoint.
+- Registration (`6a0721b`), authentication (`0a73b4a`), tenant isolation (`8b44c96`), and provider abstraction (`388088b`) checkpoints are pushed on `main`. Later integration, frontend/authentication, rate-limiting, and observability work remains uncommitted until the user explicitly requests a checkpoint.
 - No CI, branch protection, or pull-request workflow is configured.
 - `IMPLEMENTATION_STATUS.md` required by the master specification does not exist.
 - Most planned documentation files do not exist.
@@ -859,8 +931,7 @@ Tests may print an OpenJDK warning that class sharing is limited because the boo
 - Password hashes are nullable at database level solely to migrate safely over any pre-existing users. Registration-created JPA entities always provide a hash. Do not tighten this in an applied migration; use a new migration after deciding how non-password identities are handled.
 - The global normalized-email unique index reflects the current self-registration endpoint, which does not accept tenant context. Changing to tenant-scoped duplicate rules requires explicit product/security approval and a new migration.
 - Registration’s database-integrity catch is intentionally converted to a safe duplicate response; broader error taxonomy can be refined later without exposing raw database messages.
-- No health/actuator endpoint is implemented.
-- No correlation/request IDs or structured logging have been implemented yet.
+- The security-observability foundation is local only: no distributed tracing, metrics exporter, external log/audit backend, immutable audit archive, or retention/alerting policy exists.
 
 ## 25. Current ports and services
 
@@ -883,10 +954,10 @@ No AWS or remote deployed services exist.
 - Default intended branch: `main`.
 - The registration baseline root commit is `6a0721b5fffa5e030db7f83706e5cc58a327b877`.
 - Step 2 authentication is committed as `0a73b4a980ba57249551b9bf70abf9cedce805f6`.
-- Local `main` tracks `origin/main`, and both checkpoints were verified on the remote.
-- Step 3 authorization and tenant-isolation changes are not committed by this implementation task.
+- Tenant isolation is committed as `8b44c96`; the provider abstraction is committed as `388088b`.
+- Local `main` tracks `origin/main`; later integration, frontend/authentication, rate-limiting, and observability work is uncommitted.
 
-Do not claim Step 2 is in GitHub until its changes are explicitly committed and pushed. Before committing, review generated files, confirm `.env` is ignored, run a secret scan, and exclude build/cache artifacts. Do not push, create branches, or alter GitHub settings without the user’s instruction.
+Before any future checkpoint, review generated files, confirm `.env` is ignored, run a secret scan, and exclude build/cache artifacts. Do not push, create branches, or alter GitHub settings without the user’s instruction.
 
 Intended future workflow from the specification:
 
@@ -909,10 +980,14 @@ Intended future workflow from the specification:
 | `backend/settings.gradle` | Gradle project name and Foojay toolchain resolver. |
 | `backend/src/main/resources/application.properties` | Common application and Flyway settings. |
 | `backend/src/main/resources/application-*.yml` | Environment-specific external DataSource and runtime settings. |
-| `backend/src/main/resources/db/migration/V1…V5.sql` | Immutable applied schema history. |
+| `backend/src/main/resources/db/migration/V1…V7.sql` | Immutable applied schema history. |
 | `docs/AUTHENTICATION.md` | Step 2 access-token, refresh-token, rotation, reuse, and logout decisions. |
+| `docs/AUTHENTICATION-RATE-LIMITING.md` | Redis key, TTL, limit, response, and failure-mode decisions for login and refresh abuse protection. |
 | `docs/AUTHORIZATION.md` | Step 3 bearer validation, server-resolved identity, and reusable ownership boundary. |
 | `docs/TENANT-ISOLATION.md` | Resource ownership lookup, isolation enforcement, verified cases, and deferred domain behavior. |
+| `docs/INTEGRATION-CONFIGURATION.md` | Secure integration metadata, URL validation, credential abstraction, and lifecycle audit decisions. |
+| `docs/SECURITY-OBSERVABILITY.md` | Request correlation, structured logging/redaction, audit semantics, and health probe behavior. |
+| `docs/PROVIDER-EXECUTION-VERIFICATION.md` | Verified HTTP/execution controls, fixture design, limits, and credential/provider blockers. |
 | `BackendApplication.java` | Spring Boot entry point. |
 | `PasswordConfiguration.java` | Argon2id encoder and UTC clock beans. |
 | `RegisterRequest.java` | Registration request and validation rules. |
@@ -958,23 +1033,21 @@ Intended future workflow from the specification:
 
 - OAuth/social authentication.
 - Email verification, password reset, or account recovery.
-- Business-domain ownership checks and protected domain endpoints.
-- Rate limiting or brute-force protection.
+- Domain mutation/ingestion endpoints; protected order/shipment read endpoints exist.
 - PostgreSQL RLS.
 - Tenant membership/invitation/administration.
 - Integration credential storage or encryption.
 - AWS Secrets Manager/KMS.
 - Real external provider adapters or API calls.
-- Order, shipment, tracking, conversation, message, tool execution, or audit services/repositories/endpoints.
-- AI agent, LangChain4j, Bedrock, prompts, tools, or memory.
-- Redis integration in the backend.
+- Conversation lifecycle/delete/search APIs, separately durable tool-attempt ledger and domain ingestion/mutation services. Owned chat creation/send/history, order/shipment reads and transactional tool-summary audit exist.
+- Production AI model adapter, LangChain4j, Bedrock, semantic grounding verification and persistent semantic memory. Chat send invokes bounded scripted-model-tested orchestration but fails closed without a configured model.
 - API Gateway.
 - AWS infrastructure/deployment.
 - CI/CD and GitHub Actions.
 - OpenAPI documentation.
-- Observability and cost instrumentation.
+- Distributed tracing, metrics export, external log/audit backends, alerting, audit retention, and cost instrumentation.
 - Security/dependency/container/secret scanning pipeline.
-- Evaluation datasets or runner.
+- Advanced/real-model evaluation datasets or runner; the deterministic JUnit baseline exists.
 - Frontend registration/login/dashboard/chat functionality.
 - Extension authentication/chat/order/tracking functionality.
 - Production configuration or credentials.
@@ -1050,7 +1123,7 @@ The actual work has intentionally crossed the original broad phase ordering in s
 
 ## 31. Decisions that must not change without approval
 
-- Do not edit V1–V5 Flyway files.
+- Do not edit V1–V7 Flyway files.
 - Do not create a competing users table.
 - Do not store plaintext passwords, raw refresh tokens, or provider credentials.
 - Keep Argon2id for password encoding unless a security migration is explicitly designed and approved.
@@ -1059,7 +1132,7 @@ The actual work has intentionally crossed the original broad phase ordering in s
 - Keep Hibernate `ddl-auto` set to `none` and Flyway as the sole schema manager.
 - Keep tenant/user composite ownership constraints.
 - Do not enable RLS yet.
-- Do not implement bearer-token authorization, OAuth, rate limiting, AI, integrations, AWS, or API Gateway as a side effect of another task.
+- Do not redesign bearer-token authorization, authentication rate limiting, observability, or integration configuration as a side effect of another task; do not add OAuth, AI, AWS, or API Gateway without approval.
 - Do not expose integration credentials to the LLM, browser, extension, logs, or errors.
 - Do not implement external provider endpoints without documentation.
 - Keep external APIs as the source of truth and preserve source timestamps.
@@ -1072,7 +1145,7 @@ The actual work has intentionally crossed the original broad phase ordering in s
 
 ## 32. Exact next implementation step
 
-Step 3 authorization, the tenant/data-isolation boundary, and the provider-neutral `ExternalOrderProvider` contract are complete. No real provider adapter, credential handling, or business-domain behavior has started. The next feature must be selected and approved by the project owner and must not invent provider behavior without documentation.
+Owned chat create/send/history APIs, domain reads, bounded controlled-tool orchestration and transactional message/tool-summary audit are verified with fixtures. No production credential store, real provider/model, AWS SDK or ingestion exists. Before a Bedrock adapter, approve model/inference profile, region/data residency, authentication/IAM/model access and API/configuration, then verify SDK version/Java compatibility, timeout/error/tool schema mapping. Approve a policy for unsupported claims in arbitrary unverified prose; a test demonstrates the remaining risk. Existing credential-policy, real-provider-contract, internal-ID mapping, multi-shipment/source-age/cache decisions remain unresolved. Continue only with a separately approved task; see CHAT-AND-AI-SECURITY.md.
 
 ## CURRENT STATE
 
@@ -1084,17 +1157,26 @@ Step 3 authorization, the tenant/data-isolation boundary, and the provider-neutr
 - Manifest V3 extension scaffold and built output.
 - Docker Compose PostgreSQL and Redis infrastructure.
 - PostgreSQL/JPA connection configuration.
-- Flyway setup and five applied migrations.
+- Flyway setup and seven applied migrations.
 - Initial ten-table tenant-aware schema.
 - User registration endpoint with Argon2id hashing and validation.
 - Login, signed access-token issuance, rotating hashed refresh tokens, reuse detection, and logout/session revocation.
+- Atomic Redis-backed login and refresh rate limits with bounded TTLs and generic 429/503 responses.
 - Bearer JWT signature/issuer/time/claim validation and server-side active-session verification.
 - Authenticated application context containing user, tenant, session, and authentication state.
 - Reusable tenant/user ownership guards with 401/403 behavior.
 - Provider-neutral `ExternalOrderProvider` contract with typed context, request/results, safe failures, and contract tests.
+- Authenticated integration metadata CRUD, configuration-time URL validation, safe lifecycle audit events, and a credential-store abstraction without an implementation.
 - Isolation guards for integrations, orders, conversations, messages, and future integration credentials.
+- Validated request correlation, structured JSON logging with trusted security context, centralized sensitive-field redaction, transactional security/integration auditing, and minimal health probes.
 - Local development documentation.
-- Fifty-eight passing backend tests.
+- Secure GET/HEAD HTTP transport and backend-only provider execution boundary, verified with synthetic local fixtures.
+- Scoped credential rotation contract and deterministic test-only lifecycle/provider fixtures.
+- Twenty-second execution deadline, five HTTP attempts, bounded worker pool and cancellation cleanup.
+- Backend-bound tool interface using internal order ownership and explicitly untrusted data output, invoked by bounded model orchestration.
+- Persisted order/shipment/event projections and scoped internal/provider resolution; shipment-specific current provider data with explicit unavailable/provenance semantics, no cache/memory fallback.
+- Owned conversation creation/send/history APIs, atomic successful turns, safe tool-summary auditing and centralized system instructions.
+- Three hundred four passing backend tests.
 - Registration baseline commit `6a0721b` pushed to `origin/main`.
 - Step 2 authentication commit `0a73b4a` pushed to `origin/main`.
 - Diagnosis of the harmless Gradle/macOS FSEvents warning.
@@ -1112,30 +1194,36 @@ Step 3 authorization, the tenant/data-isolation boundary, and the provider-neutr
 - Argon2id persistence without plaintext storage.
 - Fifteen-minute signed access tokens and 30-day rolling refresh-token sessions.
 - Refresh-token rotation, expiration, revocation, and session-wide reuse response.
+- Login identity/IP and refresh session/IP abuse limits backed by the local Redis service.
 - Bearer authentication for every non-auth route.
 - Tenant identity derived only from the authenticated server-side user row.
 - Immediate access-token rejection after session revocation.
 - Cross-tenant and same-tenant/cross-user resource ownership enforcement at the service/repository boundary.
 - Provider-neutral order/tracking contract without credentials, transport, vendor, cloud, or AI coupling.
+- Tenant/user-scoped integration create/list/read/update/delete endpoints returning only safe metadata.
+- HTTPS enforcement outside local mode and literal-address/URL-structure SSRF checks without DNS or network access.
+- `X-Request-ID` correlation with safe generated fallback, API-error correlation, and MDC cleanup.
+- Structured request completion logs with trusted user/tenant/session identifiers where authenticated.
+- Redacted authentication and integration security events plus PostgreSQL audit rows for supported lifecycle events.
+- Public minimal `/actuator/health/liveness` and `/actuator/health/readiness`; readiness depends on PostgreSQL and Redis.
 - Local Redis/PostgreSQL ports and persistence configuration.
 - Next.js landing page build artifacts.
 - Extension build artifacts and URL settings code.
 
 ### Not implemented
 
-- Domain models/services/controllers and CRUD behavior for integrations, orders, conversations, messages, shipments, tracking, and tools.
-- Actual credential and credential-metadata storage or retrieval.
+- Domain ingestion/mutations/cache management and conversation lifecycle/delete/search services. Order/shipment reads and conversation create/send/history now exist.
+- Actual credential storage or retrieval and credential configuration endpoints.
 - Integration credentials and real provider adapters/calls.
-- Agent, tools, memory, AI models, and evaluation.
+- Production AI model/framework adapter, persistent semantic memory and real-model grounding/evaluation. Chat send invokes controlled orchestration but returns 503 without a model.
 - Most functional frontend and extension screens.
-- Redis-backed application behavior.
-- AWS, CI/CD, deployment, observability, cost controls, and production security.
+- AWS, CI/CD, deployment, distributed tracing/metrics export, external observability/audit backends, cost controls, and production security hardening.
 
 ### What should be done next
 
-1. Inspect and report the uncommitted external-provider abstraction changes.
+1. Inspect and report the uncommitted secure-integration-configuration, frontend/authentication, rate-limiting, and observability changes.
 2. Ask separately whether to create and push a checkpoint; do not assume permission.
-3. Obtain explicit approval and real provider documentation before implementing a provider adapter, credential flow, transport, or business-domain service.
+3. Resolve the credential persistence/key-lifecycle blocker and obtain real provider documentation before implementing a store or adapter. The secure HTTP reader and guarded adapter selection already exist.
 4. Preserve the authenticated context and reuse TenantDataAuthorizationService in every future protected resource service.
 
 ### Exact next Codex task/prompt
@@ -1143,7 +1231,7 @@ Step 3 authorization, the tenant/data-isolation boundary, and the provider-neutr
 ```text
 Continue only with the next explicitly approved feature.
 
-First inspect docs/PROJECT_HANDOFF.md, docs/AUTHENTICATION.md, docs/AUTHORIZATION.md, docs/TENANT-ISOLATION.md, the current Git status, V1–V5, and all current tests. Do not modify any already-applied migration.
+First inspect docs/PROJECT_HANDOFF.md, docs/AUTHENTICATION.md, docs/AUTHENTICATION-RATE-LIMITING.md, docs/AUTHORIZATION.md, docs/TENANT-ISOLATION.md, docs/INTEGRATION-CONFIGURATION.md, docs/SECURITY-OBSERVABILITY.md, the current Git status, V1–V7, and all current tests. Do not modify any already-applied migration.
 
 For a protected business service, derive user, tenant, and session exclusively from AuthenticatedUserContextProvider and reuse TenantDataAuthorizationService. Never treat client-supplied tenant or user IDs as authority.
 
@@ -1156,11 +1244,11 @@ For a new ChatGPT/Codex session:
 
 1. Open the repository root and read this entire file before changing anything.
 2. Read any repository-local agent instructions relevant to the files being changed, especially `web/AGENTS.md` for web work.
-3. Run `git status --short`, `git branch --show-current`, `git log --oneline`, and `git remote -v`. Expect pushed registration/Step 2 checkpoints plus uncommitted Step 3 and tenant-isolation changes until proven otherwise.
+3. Run `git status --short`, `git branch --show-current`, `git log --oneline`, and `git remote -v`. Expect pushed checkpoints through the provider abstraction plus later uncommitted work until proven otherwise.
 4. Never open, print, summarize, or transmit the ignored `.env`. Use `.env.example` only for variable names and placeholders.
-5. Run `docker compose ps` and verify PostgreSQL/Redis health. Inspect ports 8080 and 18080 before starting another backend because temporary verification processes may remain.
+5. Run `docker compose ps` and verify PostgreSQL/Redis health. Inspect ports 8080, 18080, and other temporary verification ports before starting another backend because test processes may remain.
 6. Read the exact source, migration, configuration, and tests related to the requested task. Do not rely only on this summary.
-7. Do not modify V1–V5. Any future schema change starts at V6 or later.
+7. Do not modify V1–V7. Any future schema change starts at V8 or later.
 8. Load local environment variables without printing them, then run the full backend test suite before and after backend changes.
 9. Keep the user informed and execute only the single approved implementation task. Stop and report before advancing.
 10. Do not infer permission to commit, push, create a pull request, change GitHub settings, stop unrelated processes, deploy, configure AWS, or modify the extension.

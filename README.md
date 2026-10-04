@@ -6,6 +6,6 @@ This repository is being built incrementally, with customer API credentials kept
 
 ## Status
 
-The local backend currently implements user registration, Spring Security credential authentication, short-lived access tokens, rotating hashed refresh tokens, session revocation, bearer-token request authentication, a reusable tenant-aware ownership boundary, and a provider-neutral external order/tracking contract. Real provider adapters and calls, business-domain services, AI functionality, and cloud deployment are not implemented.
+The local backend implements registration/authentication, Redis abuse protection, token/session security, tenant/user ownership, request/audit observability, health probes, integration metadata CRUD, the external order contract, a guarded provider execution boundary, and a secure GET/HEAD HTTP transport. Real credential storage, provider adapters/calls, AI functionality, and cloud deployment are not implemented.
 
-See `docs/PROJECT_HANDOFF.md` for the complete current state, `docs/AUTHENTICATION.md` for token/session design, `docs/AUTHORIZATION.md` for the authenticated principal, `docs/TENANT-ISOLATION.md` for resource ownership enforcement, and `docs/EXTERNAL-ORDER-PROVIDER.md` for the provider contract.
+See `docs/PROJECT_HANDOFF.md` for the current state and the authentication/security documents under `docs/`. `docs/PROVIDER-EXECUTION-VERIFICATION.md` records the tested backend execution boundary, secure HTTP reader, and the explicit blockers for credential persistence and real provider adapters.

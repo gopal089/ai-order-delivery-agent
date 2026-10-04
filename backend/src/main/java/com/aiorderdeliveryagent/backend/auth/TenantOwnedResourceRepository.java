@@ -31,6 +31,14 @@ class TenantOwnedResourceRepository {
 				""", resourceId);
 	}
 
+	Optional<ResourceOwnership> findShipmentOwnership(long resourceId) {
+		return findOwnership("SELECT tenant_id, user_id FROM public.shipments WHERE id = ?", resourceId);
+	}
+
+	Optional<ResourceOwnership> findTrackingEventOwnership(long resourceId) {
+		return findOwnership("SELECT tenant_id, user_id FROM public.tracking_events WHERE id = ?", resourceId);
+	}
+
 	Optional<ResourceOwnership> findConversationOwnership(long resourceId) {
 		return findOwnership("""
 				SELECT tenant_id, user_id

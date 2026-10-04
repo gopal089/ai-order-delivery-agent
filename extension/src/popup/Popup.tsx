@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Brand } from '../components/Brand'
 import { sendExtensionMessage } from '../shared/messages'
 import type { ExtensionSettings } from '../shared/settings'
+import { validateBackendBaseUrl } from '../shared/settings'
+import { Chat } from './Chat'
 
 type PopupState =
   | { status: 'loading' }
@@ -30,7 +32,7 @@ export function Popup() {
   }, [])
 
   const isConfigured =
-    state.status === 'ready' && Boolean(state.settings.backendBaseUrl)
+    state.status === 'ready' && !validateBackendBaseUrl(state.settings.backendBaseUrl)
 
   return (
     <main className="popup">
@@ -67,13 +69,14 @@ export function Popup() {
             </strong>
             <p>
               {isConfigured
-                ? 'The connection address is saved. Authentication and chat arrive in later phases.'
+                ? 'Sign in to send controlled questions to your local backend. AI may be unavailable.'
                 : 'Add the approved backend address before using the agent.'}
             </p>
           </div>
         )}
       </section>
 
+      {isConfigured && state.status === 'ready' && <Chat key={state.settings.backendBaseUrl} baseUrl={state.settings.backendBaseUrl} />}
       <button
         className="button popup__button"
         type="button"
@@ -85,7 +88,7 @@ export function Popup() {
 
       <footer className="popup__footer">
         <span aria-hidden="true">◆</span>
-        Credentials are never stored in this extension.
+        Provider credentials never enter this extension. Session tokens stay in popup memory only.
       </footer>
     </main>
   )

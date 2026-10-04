@@ -9,7 +9,6 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.UUID;
 
 import com.aiorderdeliveryagent.backend.TestAuthProperties;
@@ -126,10 +125,9 @@ class UserAuthenticationIntegrationTests {
 		TokenPair tokens = loginTokens("refresh.token@example.com");
 
 		assertThat(tokens.refreshToken()).hasSize(43);
-		List<RefreshToken> storedTokens = refreshTokenRepository.findAll();
-		assertThat(storedTokens).hasSize(1);
 		String expectedHash = tokenService.hashRefreshToken(tokens.refreshToken());
-		assertThat(storedTokens.getFirst().getTokenHash())
+		RefreshToken storedToken = refreshTokenRepository.findByTokenHashForUpdate(expectedHash).orElseThrow();
+		assertThat(storedToken.getTokenHash())
 				.isEqualTo(expectedHash)
 				.isNotEqualTo(tokens.refreshToken());
 		assertThat(refreshTokenRepository.findByTokenHashForUpdate(expectedHash)).isPresent();

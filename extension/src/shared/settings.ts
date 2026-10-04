@@ -38,5 +38,10 @@ export function validateBackendBaseUrl(value: string): string | null {
     return 'Do not include credentials, query parameters, or fragments.'
   }
 
+  // No production hostname is approved. This build permits only the project's default local API.
+  if (!['http://127.0.0.1:8080', 'http://localhost:8080'].includes(url.origin) || (url.pathname !== '/' && url.pathname !== '')) {
+    return 'This build permits only http://127.0.0.1:8080 or http://localhost:8080. A production backend needs an approved build.'
+  }
+
   return null
 }

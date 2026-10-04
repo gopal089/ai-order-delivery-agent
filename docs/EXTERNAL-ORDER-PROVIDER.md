@@ -44,4 +44,4 @@ Messages are deliberately generic and contain no identifiers, response bodies, o
 
 ## Deferred decisions
 
-Provider registration/resolution, credential retrieval, transport, timeouts, retry policy, pagination/filtering, normalized order-detail expansion, caching, and mapping to application services remain unimplemented. These decisions require real provider documentation and separate approval.
+The backend execution boundary and secure GET/HEAD transport now exist; see `PROVIDER-EXECUTION-VERIFICATION.md`. No real adapter or credential store is registered. Real endpoint/authentication/response mapping, pagination/filtering, normalized detail expansion, caching, and credential persistence remain blocked on documented provider information and an approved secret-store design.

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -41,6 +42,26 @@ class AuthenticationExceptionHandler {
 		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiError(
 				"AUTHENTICATION_FAILED",
 				"Authentication failed",
+				Map.of(),
+				Instant.now()));
+	}
+
+	@ExceptionHandler(AuthenticationRateLimitExceededException.class)
+	ResponseEntity<ApiError> handleRateLimitExceeded(AuthenticationRateLimitExceededException exception) {
+		return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+				.header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
+				.body(new ApiError(
+						"RATE_LIMIT_EXCEEDED",
+						"Too many authentication requests. Try again later.",
+						Map.of(),
+						Instant.now()));
+	}
+
+	@ExceptionHandler(AuthenticationRateLimitUnavailableException.class)
+	ResponseEntity<ApiError> handleRateLimitUnavailable() {
+		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ApiError(
+				"AUTHENTICATION_TEMPORARILY_UNAVAILABLE",
+				"Authentication is temporarily unavailable. Try again later.",
 				Map.of(),
 				Instant.now()));
 	}

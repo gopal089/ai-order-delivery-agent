@@ -1,5 +1,6 @@
 package com.aiorderdeliveryagent.backend.auth;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import org.springframework.http.ResponseEntity;
@@ -13,19 +14,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserAuthenticationController {
 
 	private final UserAuthenticationService authenticationService;
+	private final ClientAddressResolver clientAddressResolver;
 
-	UserAuthenticationController(UserAuthenticationService authenticationService) {
+	UserAuthenticationController(
+			UserAuthenticationService authenticationService,
+			ClientAddressResolver clientAddressResolver) {
 		this.authenticationService = authenticationService;
+		this.clientAddressResolver = clientAddressResolver;
 	}
 
 	@PostMapping("/login")
-	TokenResponse login(@Valid @RequestBody LoginRequest request) {
-		return authenticationService.login(request);
+	TokenResponse login(@Valid @RequestBody LoginRequest request, HttpServletRequest servletRequest) {
+		return authenticationService.login(request, clientAddressResolver.resolve(servletRequest));
 	}
 
 	@PostMapping("/refresh")
-	TokenResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
-		return authenticationService.refresh(request.refreshToken());
+	TokenResponse refresh(@Valid @RequestBody RefreshTokenRequest request, HttpServletRequest servletRequest) {
+		return authenticationService.refresh(
+				request.refreshToken(),
+				clientAddressResolver.resolve(servletRequest));
 	}
 
 	@PostMapping("/logout")

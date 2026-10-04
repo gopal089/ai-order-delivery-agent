@@ -1,0 +1,39 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "AI Order backend route inventory", "version": "0.1.0", "description": "Design-only routing inventory from Spring controllers. Not a deployment template or complete DTO specification. No AWS integration target or authorizer is configured. Bearer requirement describes Spring Boot enforcement, not native Gateway JWT validation."},
+  "security": [{"backendBearer": []}],
+  "paths": {
+    "/api/v1/auth/register": {"post": {"security": [], "responses": {"201": {"description": "User registered"}, "default": {"description": "Application error"}}}},
+    "/api/v1/auth/login": {"post": {"security": [], "responses": {"200": {"description": "Authenticated token session"}, "default": {"description": "Application error"}}}},
+    "/api/v1/auth/refresh": {"post": {"security": [], "responses": {"200": {"description": "Rotated token session; refresh token required in body"}, "default": {"description": "Application error"}}}},
+    "/api/v1/auth/logout": {"post": {"security": [], "responses": {"204": {"description": "Session revoked; refresh token required in body"}, "default": {"description": "Application error"}}}},
+    "/api/v1/integrations": {
+      "get": {"responses": {"200": {"description": "Owned integration metadata"}, "default": {"description": "Application error"}}},
+      "post": {"responses": {"201": {"description": "Owned integration configured"}, "default": {"description": "Application error"}}}
+    },
+    "/api/v1/integrations/{integrationId}": {
+      "parameters": [{"name": "integrationId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}],
+      "get": {"responses": {"200": {"description": "Owned integration metadata"}, "default": {"description": "Application error"}}},
+      "patch": {"responses": {"200": {"description": "Updated integration metadata"}, "default": {"description": "Application error"}}},
+      "delete": {"responses": {"204": {"description": "Integration deleted"}, "default": {"description": "Application error"}}}
+    },
+    "/api/v1/orders": {"get": {"parameters": [{"name": "afterId", "in": "query", "schema": {"type": "integer", "format": "int64", "default": 0}}, {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 100}}], "responses": {"200": {"description": "Owned persisted orders"}, "default": {"description": "Application error"}}}},
+    "/api/v1/orders/{orderId}": {"parameters": [{"name": "orderId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}], "get": {"responses": {"200": {"description": "Owned persisted order"}, "default": {"description": "Application error"}}}},
+    "/api/v1/shipments/{shipmentId}": {"parameters": [{"$ref": "#/components/parameters/shipmentId"}], "get": {"responses": {"200": {"description": "Owned persisted shipment"}, "default": {"description": "Application error"}}}},
+    "/api/v1/shipments/{shipmentId}/tracking-history": {"parameters": [{"$ref": "#/components/parameters/shipmentId"}], "get": {"responses": {"200": {"description": "Owned tracking projection with provenance"}, "default": {"description": "Application error"}}}},
+    "/api/v1/shipments/{shipmentId}/current-status": {"parameters": [{"$ref": "#/components/parameters/shipmentId"}], "get": {"responses": {"200": {"description": "Owned status projection with provenance"}, "default": {"description": "Application error"}}}},
+    "/api/v1/shipments/{shipmentId}/current-location": {"parameters": [{"$ref": "#/components/parameters/shipmentId"}], "get": {"responses": {"200": {"description": "Owned location projection with provenance"}, "default": {"description": "Application error"}}}},
+    "/api/v1/conversations": {"post": {"requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "additionalProperties": false, "maxProperties": 0}}}}, "responses": {"201": {"description": "Conversation created"}, "default": {"description": "Application error"}}}},
+    "/api/v1/conversations/{conversationId}/messages": {
+      "parameters": [{"name": "conversationId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64", "minimum": 1}}],
+      "get": {"responses": {"200": {"description": "Owned untrusted bounded history"}, "default": {"description": "Application error"}}},
+      "post": {"requestBody": {"required": true, "content": {"application/json": {"schema": {"type": "object", "additionalProperties": false, "required": ["integrationId", "message"], "properties": {"integrationId": {"type": "integer", "format": "int64", "minimum": 1}, "message": {"type": "string", "maxLength": 4000}}}}}}, "responses": {"200": {"description": "Controlled factual turn; raw model prose withheld"}, "503": {"description": "Model unavailable or execution unavailable"}, "default": {"description": "Application error"}}}
+    },
+    "/actuator/health/liveness": {"get": {"security": [], "responses": {"200": {"description": "Live"}, "503": {"description": "Not live"}}}},
+    "/actuator/health/readiness": {"get": {"security": [], "responses": {"200": {"description": "Ready including PostgreSQL and Redis"}, "503": {"description": "Not ready"}}}}
+  },
+  "components": {
+    "securitySchemes": {"backendBearer": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT", "description": "Validated by Spring Boot, including server-side active user/session checks"}},
+    "parameters": {"shipmentId": {"name": "shipmentId", "in": "path", "required": true, "schema": {"type": "integer", "format": "int64"}}}
+  }
+}
