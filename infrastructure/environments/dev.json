@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "kind": "review-only-environment-definition",
+  "deploymentStatus": "BLOCKED",
+  "approved": {
+    "accountId": null,
+    "region": null,
+    "ingress": null,
+    "budget": null,
+    "backendImageDigest": null,
+    "webImageDigest": null,
+    "apiOrigin": null,
+    "webOrigin": null
+  },
+  "network": {
+    "separateVpc": true,
+    "privateCompute": true,
+    "privateDataSubnets": true,
+    "assignPublicIp": false,
+    "databasePublic": false,
+    "redisPublic": false,
+    "allowCrossEnvironmentTraffic": false,
+    "securityGroupSources": "security-group-references-only",
+    "egressDecision": "DECISION REQUIRED: cost-reviewed NAT or service endpoints; provider egress not enabled"
+  },
+  "runtime": {
+    "backendProfile": "dev",
+    "backendPort": 8080,
+    "webPort": 3000,
+    "redisNamespace": "auth:ratelimit:dev",
+    "databaseTls": "verify-full-with-approved-CA",
+    "redisTls": true,
+    "backendTlsStatus": "BLOCKED: certificate delivery and TLS termination unconfigured",
+    "publicHttpsRequired": true,
+    "healthPaths": [
+      "/actuator/health/liveness",
+      "/actuator/health/readiness"
+    ],
+    "logFormat": "logstash",
+    "stopTimeoutSeconds": 60,
+    "shutdownTimeout": "30s",
+    "migrationPolicy": "existing-Flyway-V1-V7-validate-on-migrate-no-clean-no-DDL",
+    "imagePolicy": "immutable-reviewed-digest-per-environment",
+    "rollbackPolicy": "previous-reviewed-digest-with-schema-compatibility-check"
+  },
+  "isolation": {
+    "database": "separate-instance",
+    "redis": "separate-cache",
+    "services": "separate-backend-and-web-services",
+    "secrets": "separate-environment-secrets",
+    "logs": "separate-environment-log-groups",
+    "testData": "synthetic-only",
+    "productionAccess": false,
+    "customerCredentials": false
+  },
+  "secretInjection": {
+    "mechanism": "ECS-secret-injection-from-Secrets-Manager",
+    "variables": [
+      "DATABASE_USERNAME",
+      "DATABASE_PASSWORD",
+      "AUTH_ACCESS_TOKEN_SIGNING_KEY",
+      "REDIS_PASSWORD"
+    ],
+    "valuesIncluded": false
+  },
+  "iam": {
+    "executionRole": "environment-scoped-image-pull-log-write-secret-read",
+    "taskRole": "no-AWS-API-permissions-until-an-adapter-is-approved",
+    "adminPermissions": false,
+    "policies": "NOT VERIFIED: no IAM policies generated or applied"
+  },
+  "bedrock": {
+    "status": "BLOCKED",
+    "modelId": null,
+    "implemented": false
+  },
+  "iac": {
+    "status": "DECISION REQUIRED",
+    "recommendation": "plain-CloudFormation-after-approved-account-region-ingress-budget",
+    "deployable": false
+  },
+  "environment": "dev",
+  "resourceScope": "ai-order-delivery-agent-dev"
+}

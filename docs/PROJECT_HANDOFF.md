@@ -2,6 +2,21 @@
 
 Last updated: 2026-10-04 (Asia/Kolkata)
 
+Processes 41–45 continuation starts from clean checkpoint b6c1215449cd87ae8551b1ecc195397185288029.
+AWS CLI is present but STS reports missing credentials; no profile/account/region/model approval was
+discovered. No AWS resources or IAM policies were created and no deployment occurred. DEV/QA now have
+review-only tool-neutral infrastructure requirements under infrastructure/environments/, offline
+security/isolation validation and tests. These are NOT deployable IaC or provisioned environments.
+Plain CloudFormation is recommended for approval; ingress/WAF/TLS, budget, sizing and Gateway execution
+timeout remain unresolved. Existing Spring profiles, frontend, extension, backend behavior and V1–V7
+are unchanged. See infrastructure/README.md for evaluated resources, configuration and deployment gates.
+Evaluation now has a safe JUnit evidence catalog/reporter using the existing deterministic suite;
+generated output stays in ignored backend/build/reports/evaluation/. Bedrock remains BLOCKED and
+unimplemented. See evaluation/README.md. This continuation does not assert cloud or production readiness.
+Fresh verification: 304 backend tests, 12 standalone deterministic cases, 13 reporter tests and 10
+environment-definition tests passed; bootJar and local container smoke checks passed. Full evaluation
+evidence records 17 automated categories PASS, three MANUAL_REVIEW and live Bedrock BLOCKED.
+
 This document is the durable handoff for continuing the project from another ChatGPT/Codex account. It records the repository state, implemented functionality, verified behavior, security constraints, known issues, and the intended roadmap. Treat the repository as authoritative when it differs from this document, and update this document when a later implementation changes the recorded state.
 
 Latest verification (2026-10-04): `./gradlew test --rerun-tasks --console=plain` passed 281 tests with zero failures/errors/skips; `bootJar` passed. The 263-test baseline was independently rerun. A backend response boundary now withholds arbitrary generated prose from chat output and new assistant persistence, and masks legacy assistant/OTHER public history. Backend-only typed tool provenance and mandatory AI_RESPONSE_GROUNDING audit distinguish retrieval from answer support. All model answers remain MODEL_GENERATED_UNVERIFIED even after retrieval; stronger categories are reserved, not implemented claim classifiers. The exact unsupported Chennai claim with no tool is tested at unit and authenticated API/database layers and is never EXTERNALLY_SUPPORTED or shown/stored as an assistant answer. Normal packaged startup returns safe 503 without a model; a separate temporary test fixture exercised runtime chat/tool/provenance/persistence/isolation/request IDs. Fixtures/processes were cleaned. No real model/provider, AWS SDK, credential store, migration, cache or ingestion was added. BEDROCK CONFIGURATION BLOCKED: approved region/model/profile/authentication/IAM access absent; no real invocation. SDK/API readiness was researched using official AWS sources, not implemented. Complete factual grounding and prompt-injection protection remain unverified. See `docs/RESPONSE-GROUNDING-AND-BEDROCK-READINESS.md`, `docs/CHAT-AND-AI-SECURITY.md` and `docs/PROVIDER-EXECUTION-VERIFICATION.md`. Older frontend descriptions remain historical, not reverified in this backend batch.

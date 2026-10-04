@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "categories": [
+    {
+      "id": "tool_selection",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+          "methodPrefix": "allFiveToolsProduceDistinctUntrustedEvidence"
+          ,"testNamePattern": "\\[[1-5]\\] scenario = (ORDERS|DETAILS|HISTORY|STATUS|LOCATION)",
+          "expectedCount": 5
+        },
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+          "methodPrefix": "unknownJavaClassCannotBecomeATool"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "tool_argument_validation",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+          "methodPrefix": "identityCredentialUrlAndProviderOverridesAreRejected"
+        },
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+          "methodPrefix": "malformedUrlArgumentIsRejectedBeforeToolInvocation"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "authorization_boundary",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "crossTenantAndMissingConversationCannotReadOrSend"
+        },
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "sameTenantOtherUserCannotReadOrSend"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "current_external_retrieval",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "controlledToolRetrievalHasServerDerivedMetadataAndSafeAuditNotRawResults"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "missing_current_retrieval",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "storedSupportedFieldsDoNotBecomeFreshRetrievalOnNextPlainTurn"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "unsupported_claims",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ResponseGroundingBoundaryTests",
+          "methodPrefix": "exactChennaiCounterexampleNeverBecomesExternallySupportedOrVisible"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "conflicting_model_claims",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "actualProviderBangaloreOverridesModelChennaiAndInventedDeliveryTomorrowInResponseAndStorage"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "missing_location",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ControlledFactRenderingTests",
+          "methodPrefix": "unavailableStatusAndSourceTimeAreNotInvented"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "provider_failure",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "unavailableTrackingAndProviderFailureDoNotBecomeExternalSuccess"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "prompt_injection",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+          "methodPrefix": "hostileTextCannotPromoteItselfToSystemInstructionsOrExecuteAnArbitraryTool"
+          ,"testNamePattern": "\\[[1-6]\\] source = \"(USER|HISTORY|EXTERNAL_RESPONSE|ORDER_STATUS|TRACKING_DESCRIPTION|TOOL_RESULT)\"",
+          "expectedCount": 6
+        },
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+          "methodPrefix": "systemInstructionsRemainSeparateFromHostileHistoryAndUserText"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "malicious_provider_content",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "maliciousProviderAndModelTextRemainUntrustedAndNeverReachAnswerOrAudit"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "tool_call_limits",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+          "methodPrefix": "repeatedToolRequestsStopAtThreeInvocations"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "execution_timeout",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+          "methodPrefix": "modelTimeoutReturnsWithinBound"
+        },
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AgentOrchestrationTests",
+          "methodPrefix": "toolTimeoutProvidesOnlySafeStructuredFailureToModel"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "grounding_provenance",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ResponseGroundingBoundaryTests",
+          "methodPrefix": "successfulToolFlagsAloneWithoutBackendEvidenceCannotFabricateProvenance"
+        },
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ResponseGroundingBoundaryTests",
+          "methodPrefix": "modelResponseContractDoesNotAcceptProvenanceVerificationOrSupportStatus"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "conversation_persistence",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "createSendAndAuthorizedHistoryPersistOneAtomicPairWithNoExternalVerificationClaim"
+        },
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "modelFailureIsSafeCorrelatedAndRollsBackWholeTurn"
+        },
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "mandatoryAuditFailureRollsBackBothMessages"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "tenant_isolation",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "crossTenantAndMissingConversationCannotReadOrSend"
+        },
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.ConversationApiIntegrationTests",
+          "methodPrefix": "forgedIdentityHeadersDoNotChangeConversationOrMessageOwnership"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    },
+    {
+      "id": "worker_saturation",
+      "evidence": [
+        {
+          "suite": "com.aiorderdeliveryagent.backend.ai.AiExecutionGuardTests",
+          "methodPrefix": "interruptionIgnoringModelWorkIsBoundedAndSaturationFailsClosed"
+        }
+      ],
+      "scope": "deterministic/backend-contract; not real-model quality"
+    }
+  ],
+  "manualReview": [
+    "real-model-intent-and-semantic-quality",
+    "provider-truthfulness-and-freshness",
+    "real-model-privacy-latency-and-cost"
+  ],
+  "blocked": [
+    "bedrock-live-model-evaluation"
+  ]
+}
